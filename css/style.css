@@ -423,8 +423,8 @@ body.is-rest *, body.is-rest *::before, body.is-rest *::after { animation-play-s
    9. 내 질문 띄우기
    ========================================================= */
 .ask { color: #fff; }
-.sky { position: absolute; inset: 0; z-index: 1; }
-.ask-inner { z-index: 2; text-align: center; }
+.ask-grid { display: grid; gap: 40px; }
+.ask-inner { position: relative; z-index: 2; text-align: center; max-width: 560px; margin: 0 auto; width: 100%; }
 .ask-title { font-size: clamp(26px, 6vw, 38px); font-weight: 900; margin-bottom: 10px; }
 .ask-desc { opacity: .85; font-size: 15px; }
 .ask-form { margin: 24px auto 0; max-width: 520px; background: rgba(7, 18, 81, .72); border: 1px solid rgba(255, 255, 255, .15); border-radius: 22px; padding: 18px; backdrop-filter: blur(4px); }
@@ -440,21 +440,95 @@ body.is-rest *, body.is-rest *::before, body.is-rest *::after { animation-play-s
 .ask-msg { min-height: 1.5em; margin-top: 8px; font-size: 14px; font-weight: 700; color: var(--logo); }
 .ask-msg.is-error { color: #FFB4C4; }
 .ask-note { font-size: 13px; opacity: .7; margin-top: 14px; }
-.sky-q {
-  position: absolute; border: 0; background: none; cursor: pointer; font-weight: 900; line-height: 1; padding: 6px;
-  color: var(--c); text-shadow: 0 2px 0 var(--night), 1px 0 0 var(--night), -1px 0 0 var(--night);
-  animation: float var(--d, 7s) ease-in-out infinite alternate; animation-delay: var(--delay, 0s);
+
+/* =========================================================
+   9-1. 질문의 문: 방문자의 질문이 문이 되어 걸리는 벽
+   ========================================================= */
+.qwall-wrap { position: relative; z-index: 2; text-align: center; }
+.qwall-head { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.qwall-title { font-size: clamp(22px, 5vw, 28px); font-weight: 900; color: var(--logo); }
+.live-badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; background: rgba(255, 255, 255, .1); font-size: 12px; font-weight: 800; letter-spacing: .04em; }
+.live-badge i { width: 8px; height: 8px; border-radius: 50%; background: #4FD27E; box-shadow: 0 0 0 0 rgba(79, 210, 126, .6); animation: livePulse 1.8s ease-out infinite; }
+@keyframes livePulse { to { box-shadow: 0 0 0 8px rgba(79, 210, 126, 0); } }
+.qwall-info { margin-top: 6px; font-size: 14px; color: rgba(255, 255, 255, .72); font-variant-numeric: tabular-nums; }
+.qwall-toast {
+  position: absolute; left: 50%; top: 70px; z-index: 5; translate: -50% 0; width: max-content; max-width: calc(100% - 20px);
+  padding: 9px 16px; border-radius: 999px; background: var(--logo); color: var(--night); font-size: 14px; font-weight: 800;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .35); opacity: 0; scale: .9; pointer-events: none; transition: opacity .35s, scale .35s cubic-bezier(.2, 1.4, .4, 1);
 }
-.sky-q:hover, .sky-q.is-show { z-index: 3; }
-.sky-q .bub {
-  position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%); width: max-content; max-width: 220px;
-  background: #fff; color: var(--ink); text-shadow: none; font-size: 14px; font-weight: 600; line-height: 1.45; padding: 8px 12px; border-radius: 12px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, .25); opacity: 0; pointer-events: none; transition: opacity .2s; white-space: normal;
+.qwall-toast:empty { display: none; }
+.qwall-toast.is-show { opacity: 1; scale: 1; }
+.qwall { list-style: none; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: center; gap: 40px 22px; margin-top: 30px; padding: 14px 0 12px; min-height: 230px; }
+.qwall-foot { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 14px; margin-top: 18px; }
+
+/* 문 크기: 질문 길이에 따라 (s ≤14자, m ≤30자, l ≤60자) */
+.qdoor { --k: 1; --w: 148px; --h: 196px; --fs: 14.5px; position: relative; flex: none; width: calc(var(--w) * var(--k));
+  animation: qBob var(--bob, 6s) ease-in-out var(--bobDelay, 0s) infinite alternate; }
+.qd-s { --w: 112px; --h: 164px; --fs: 15px; }
+.qd-l { --w: 198px; --h: 236px; --fs: 14px; }
+/* 바닥 그림자: 문이 살짝 떠 있는 느낌 */
+.qdoor::after { content: ''; position: absolute; left: 10%; right: 10%; bottom: -16px; height: 12px; border-radius: 50%; background: radial-gradient(ellipse, rgba(0, 0, 0, .5), transparent 70%); animation: qShadow var(--bob, 6s) ease-in-out var(--bobDelay, 0s) infinite alternate; }
+@keyframes qBob { from { transform: translateY(0); } to { transform: translateY(-8px); } }
+@keyframes qShadow { from { scale: 1; opacity: .9; } to { scale: .82; opacity: .55; } }
+
+.qdoor-body {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; width: 100%; height: calc(var(--h) * var(--k));
+  padding: calc(42px * var(--k)) calc(12px * var(--k)) calc(30px * var(--k)); border: 5px solid color-mix(in srgb, var(--c) 66%, #071251);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--c) 78%, #fff) 0%, var(--c) 100%);
+  border-radius: 10px; cursor: pointer; font: inherit; color: var(--ink); rotate: var(--tilt, 0deg);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, .35); transition: translate .3s cubic-bezier(.2, 1.4, .4, 1), box-shadow .3s;
 }
-.sky-q:hover .bub, .sky-q:focus-visible .bub, .sky-q.is-show .bub { opacity: 1; }
-.sky-q.is-new { animation: born 1.6s ease-out both, float var(--d, 7s) 1.6s ease-in-out infinite alternate; }
-@keyframes float { from { transform: translateY(0) rotate(-6deg); } to { transform: translateY(-16px) rotate(6deg); } }
-@keyframes born { from { transform: translateY(160px) scale(.3); opacity: 0; } 60% { opacity: 1; } to { transform: translateY(0) scale(1); } }
+.qdoor-body:hover, .qdoor-body:focus-visible { translate: 0 -6px; box-shadow: 0 0 36px color-mix(in srgb, var(--c) 75%, transparent), 0 16px 30px rgba(0, 0, 0, .4); }
+/* 모양: 질문마다 다르게 */
+.qd-arch .qdoor-body { border-radius: calc(var(--w) * var(--k) / 2) calc(var(--w) * var(--k) / 2) 10px 10px; }
+.qd-round .qdoor-body { border-radius: 30px 30px 10px 10px; }
+.qd-tall .qdoor-body { border-radius: 50% 50% 10px 10px / 30% 30% 10px 10px; }
+.qd-double .qdoor-body::before { content: ''; position: absolute; top: 6px; bottom: 6px; left: 50%; width: 3px; translate: -50% 0; border-radius: 2px; background: color-mix(in srgb, var(--c) 60%, #071251); opacity: .55; }
+.qdoor-win { position: absolute; top: calc(10px * var(--k)); left: 50%; translate: -50% 0; width: 24px; height: 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; background: rgba(255, 255, 255, .6); color: var(--night); font-size: 15px; font-weight: 900; line-height: 1; }
+.qdoor-win .material-icons-outlined { font-size: 15px; }
+.qdoor-plate { position: relative; z-index: 1; width: 100%; padding: 9px 10px; border-radius: 10px; background: #FFF9EA; color: #1A1F3D;
+  font-size: calc(var(--fs) * var(--k)); line-height: 1.45; font-weight: 700; text-align: center; word-break: keep-all; overflow-wrap: anywhere;
+  box-shadow: 0 1px 6px rgba(7, 18, 81, .18); }
+.qdoor-knob { position: absolute; right: calc(14px * var(--k)); bottom: calc(14px * var(--k)); width: 9px; height: 9px; border-radius: 50%; background: rgba(255, 255, 255, .85); box-shadow: 0 0 0 2px color-mix(in srgb, var(--c) 60%, #071251); }
+.qd-double .qdoor-knob { right: calc(50% + 7px); }
+.qd-double .qdoor-body::after { content: ''; position: absolute; left: calc(50% + 7px); bottom: calc(14px * var(--k)); width: 9px; height: 9px; border-radius: 50%; background: rgba(255, 255, 255, .85); box-shadow: 0 0 0 2px color-mix(in srgb, var(--c) 60%, #071251); }
+
+/* 내 질문 */
+.qdoor-tag { position: absolute; z-index: 3; left: 50%; top: -13px; translate: -50% 0; white-space: nowrap; padding: 3px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 800; background: var(--logo); color: var(--night); box-shadow: 0 4px 10px rgba(0, 0, 0, .3); }
+.is-mine-ok .qdoor-tag { background: #4FD27E; color: #0B2A17; }
+.is-mine-wait .qdoor-body { box-shadow: 0 0 0 3px rgba(255, 216, 77, .9), 0 0 34px rgba(255, 216, 77, .45), 0 12px 26px rgba(0, 0, 0, .35); }
+/* 다른 사람의 확인 중 질문: 글 없이 작은 잠긴 문으로만 */
+.qwall-pending { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 12px; font-size: 13px; color: rgba(255, 255, 255, .6); }
+.qwall-pending[hidden] { display: none; }
+.pending-doors { list-style: none; display: flex; gap: 6px; }
+.pending-doors li { display: flex; align-items: center; justify-content: center; width: 22px; height: 30px; border-radius: 11px 11px 3px 3px; border: 2px dashed rgba(255, 255, 255, .4); color: rgba(255, 255, 255, .55);
+  animation: qPendIn .5s cubic-bezier(.2, 1.4, .4, 1) both, qGhost 2.4s ease-in-out infinite alternate; }
+.pending-doors li:nth-child(2n) { animation-delay: 0s, -1.2s; }
+.pending-doors .material-icons-outlined { font-size: 12px; }
+@keyframes qPendIn { from { scale: .2; opacity: 0; } }
+@keyframes qGhost { from { opacity: .45; } to { opacity: 1; } }
+
+/* 벽이 처음 보일 때: 차례로 떠오름 */
+.qdoor.is-enter { animation: qIn .9s cubic-bezier(.16, 1, .3, 1) calc(var(--i, 0) * 60ms) both, qBob var(--bob, 6s) ease-in-out var(--bobDelay, 0s) infinite alternate; }
+@keyframes qIn { from { opacity: 0; translate: 0 34px; filter: blur(5px); } to { opacity: 1; translate: none; filter: none; } }
+/* 새 문이 생길 때: 빛이 번지며 솟아오름 */
+.qdoor.is-born { animation: qBorn 1.3s cubic-bezier(.2, 1.25, .4, 1) both, qBob var(--bob, 6s) ease-in-out 1.3s infinite alternate; }
+.qdoor.is-born::before { content: ''; position: absolute; z-index: -1; left: 50%; top: 50%; width: 260px; height: 260px; margin: -130px 0 0 -130px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(255, 244, 200, .95) 0%, rgba(255, 216, 77, .4) 38%, transparent 70%); animation: qFlash 1.5s ease-out both; }
+@keyframes qBorn { 0% { opacity: 0; scale: .35; translate: 0 50px; filter: brightness(2.2); } 55% { opacity: 1; filter: brightness(1.5); } 100% { opacity: 1; scale: 1; translate: none; filter: none; } }
+@keyframes qFlash { 0% { opacity: 0; scale: .2; } 30% { opacity: 1; } 100% { opacity: 0; scale: 1.7; } }
+/* 두드리기 */
+.qdoor-body.is-knock { animation: qKnock .55s ease; }
+@keyframes qKnock { 20% { rotate: calc(var(--tilt, 0deg) - 3deg); } 45% { rotate: calc(var(--tilt, 0deg) + 3deg); } 70% { rotate: calc(var(--tilt, 0deg) - 1.5deg); } }
+/* 아직 문이 없을 때 */
+.qwall-empty { display: flex; flex-direction: column; align-items: center; gap: 14px; color: rgba(255, 255, 255, .7); font-size: 15px; line-height: 1.6; }
+.qdoor-outline { display: flex; align-items: center; justify-content: center; width: 110px; height: 160px; border: 3px dashed rgba(255, 255, 255, .35); border-radius: 55px 55px 10px 10px; font-size: 44px; font-weight: 900; color: rgba(255, 255, 255, .35); }
+@media (max-width: 479px) {
+  .qdoor { --k: .8; }
+  .qwall { gap: 30px 12px; }
+  .qdoor-win { width: 20px; height: 20px; font-size: 13px; }
+}
 
 /* =========================================================
    10. 에필로그
@@ -506,7 +580,6 @@ body.is-rest *, body.is-rest *::before, body.is-rest *::after { animation-play-s
 .prologue::after, .world::after, .cast::after { translate: 0 calc(var(--p, 0) * 90px); }
 .story .shadow-cloth { translate: 0 calc(var(--p, 0) * 60px); }
 .stop-svg { translate: 0 calc(var(--p, 0) * 28px); }
-.ask .sky { translate: 0 calc(var(--p, 0) * -50px); }
 .ask::after, .epilogue::after { translate: 0 calc(var(--p, 0) * 40px); }
 
 /* =========================================================
@@ -560,6 +633,11 @@ body.is-rest *, body.is-rest *::before, body.is-rest *::after { animation-play-s
   .stop-lyric p { line-height: 1.7; }
 }
 @media (min-width: 1024px) {
+  .ask-grid { grid-template-columns: 360px minmax(0, 1fr); gap: 56px; align-items: start; max-width: 1240px; }
+  .ask-inner { position: sticky; top: calc(var(--header-h) + 28px); text-align: left; margin: 0; }
+  .ask-inner .kicker { margin-right: 0; }
+  .ask-form { margin-left: 0; }
+  .qwall { margin-top: 26px; }
   .nav { display: flex; }
   .menu-btn { display: none; }
   .topbar { padding: 0 28px; }
@@ -578,5 +656,3 @@ body.is-rest *, body.is-rest *::before, body.is-rest *::after { animation-play-s
   .reveal, .js [data-stagger] > * { opacity: 1; translate: none; filter: none; }
 }
 
-.sky-deco { position: absolute; font-weight: 900; line-height: 1; color: var(--c); opacity: .55; pointer-events: none;
-  text-shadow: 0 2px 0 var(--night); animation: float var(--d, 7s) ease-in-out infinite alternate; animation-delay: var(--delay, 0s); }
