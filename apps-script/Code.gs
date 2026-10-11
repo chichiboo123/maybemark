@@ -25,20 +25,34 @@ var COLORS = ['#FFC233', '#3D6BF0', '#3FBF6F', '#F2557F', '#9C82EA', '#3FC4D6'];
 var BANNED = ['시발', '씨발', 'ㅅㅂ', 'ㅆㅂ', '병신', 'ㅂㅅ', '개새', '존나', 'ㅈㄴ', '좆', '닥쳐', '꺼져', '미친놈', '미친년', 'fuck', 'shit'];
 
 /* ---------------- 시트 메뉴 ---------------- */
+/* 시트를 열 때 자동으로 실행됩니다. 편집기에서 직접 '실행'할 필요는 없어요.
+   (편집기에서 실행하면 메뉴를 붙일 시트 화면이 없어서 안내만 남기고 끝납니다.) */
 function onOpen() {
-  SpreadsheetApp.getUi().createMenu('MAYBEMARK')
-    .addItem('처음 설정 (탭·머리글 만들기)', 'setup')
-    .addItem('공개 질문 questions.json 만들기', 'exportJson')
-    .addToUi();
+  try {
+    SpreadsheetApp.getUi().createMenu('MAYBEMARK')
+      .addItem('처음 설정 (탭·머리글 만들기)', 'setup')
+      .addItem('공개 질문 questions.json 만들기', 'exportJson')
+      .addToUi();
+  } catch (err) {
+    Logger.log('onOpen은 직접 실행하지 않아도 됩니다. 구글 시트 탭을 새로고침하면 MAYBEMARK 메뉴가 생겨요. 처음 설정은 함수 목록에서 setup을 골라 실행하세요.');
+  }
+}
+
+/* 이 코드는 구글 시트의 [확장 프로그램 → Apps Script]로 연 프로젝트에 있어야 합니다. */
+function ss_() {
+  var ss = SpreadsheetApp.getActive();
+  if (!ss) throw new Error('연결된 구글 시트가 없어요. 시트에서 [확장 프로그램 → Apps Script]를 눌러 연 프로젝트에 이 코드를 붙여 넣어 주세요.');
+  return ss;
 }
 
 /** 처음 한 번 실행: '질문' 탭과 머리글, 공개 체크박스 열을 만듭니다. */
 function setup() {
-  var ss = SpreadsheetApp.getActive();
+  var ss = ss_();
   var sh = ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
   sh.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]).setFontWeight('bold').setBackground('#FFF4D6');
   sh.setFrozenRows(1);
   sh.setColumnWidth(1, 150); sh.setColumnWidth(2, 420); sh.setColumnWidth(3, 80); sh.setColumnWidth(4, 60); sh.setColumnWidth(5, 200);
+  Logger.log("설정 완료: '질문' 탭이 준비됐어요.");
   return '설정 완료';
 }
 
@@ -104,18 +118,19 @@ function onEdit(e) {
 
 /** 공연 후: 공개된 질문을 JSON으로 만들어 '내보내기' 탭 A1에 넣습니다. 복사해서 GitHub의 data/questions.json에 붙여 넣으세요. */
 function exportJson() {
-  var ss = SpreadsheetApp.getActive();
+  var ss = ss_();
   var out = ss.getSheetByName('내보내기') || ss.insertSheet('내보내기');
   out.clear();
   out.getRange('A1').setValue(JSON.stringify(snapshot_().items, null, 2)).setWrap(true);
   out.setColumnWidth(1, 700);
-  SpreadsheetApp.getUi().alert("'내보내기' 탭 A1 칸의 내용을 복사해 GitHub의 data/questions.json에 붙여 넣으세요.");
+  var msg = "'내보내기' 탭 A1 칸의 내용을 복사해 GitHub의 data/questions.json에 붙여 넣으세요.";
+  try { SpreadsheetApp.getUi().alert(msg); } catch (err) { Logger.log(msg); }
 }
 
 /* ---------------- 내부 함수 ---------------- */
 function sheet_() {
-  var sh = SpreadsheetApp.getActive().getSheetByName(SHEET_NAME);
-  if (!sh) { setup(); sh = SpreadsheetApp.getActive().getSheetByName(SHEET_NAME); }
+  var sh = ss_().getSheetByName(SHEET_NAME);
+  if (!sh) { setup(); sh = ss_().getSheetByName(SHEET_NAME); }
   return sh;
 }
 
