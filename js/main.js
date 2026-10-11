@@ -340,10 +340,11 @@
      7. 몰라 정류장: 천 → 지붕, 잠깐 불 끄기
      ========================================================= */
   once($('#stopSvg'), 'is-roof', 0.5);
-  var dark = $('#blackout'), restBtn = $('#restBtn'), darkTimer = null;
+  var dark = $('#blackout'), restBtn = $('#restBtn'), darkTimer = null, darkY = 0;
   function lightsOff() {
     if (!dark.hidden) return;
     cancelGlide();
+    darkY = window.scrollY;
     dark.hidden = false;
     void dark.offsetWidth; /* 바로 다음 프레임에 전환이 시작되도록 */
     document.body.classList.add('is-rest', 'is-dark');
@@ -367,8 +368,14 @@
   dark.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); lightsOn(); }
   });
-  /* 불이 꺼진 동안엔 뒤 화면이 움직이지 않게 */
-  ['wheel', 'touchmove'].forEach(function (t) { dark.addEventListener(t, function (e) { e.preventDefault(); }, { passive: false }); });
+  /* 불이 꺼진 동안엔 뒤 화면이 움직이지 않게 (휠·터치를 막고, 그래도 움직이면 제자리로) */
+  function isDark() { return document.body.classList.contains('is-dark'); }
+  ['wheel', 'touchmove'].forEach(function (t) {
+    window.addEventListener(t, function (e) { if (isDark()) e.preventDefault(); }, { passive: false });
+  });
+  window.addEventListener('scroll', function () {
+    if (isDark() && window.scrollY !== darkY) window.scrollTo({ top: darkY, behavior: 'instant' });
+  }, { passive: true });
 
   /* =========================================================
      8. 무대 기록 · 크레딧
