@@ -1,0 +1,148 @@
+/**
+ * MAYBEMARK · 모름표 탐험대 — 질문 아카이브 API
+ *
+ * 구글 시트에 붙어 있는 Apps Script입니다. 화면(HTML)은 만들지 않고 글자(JSON)만 주고받습니다.
+ * 그래서 방문자는 "Google Apps Script 사용자가 만들었습니다" 안내 화면을 보지 않습니다.
+ *
+ *  - doPost : 사이트에서 보낸 질문을 '질문' 탭에 한 줄 추가 (공개 칸은 비어 있음)
+ *  - doGet  : '공개' 칸에 체크된 질문만 돌려줌 (5분 캐시)
+ *  - onEdit : '공개' 칸을 바꾸면 캐시를 지워 바로 반영
+ *  - 메뉴 'MAYBEMARK' : 처음 설정 / questions.json 만들기
+ */
+
+var SHEET_NAME = '질문';
+var HEADERS = ['시각', '질문', '색', '공개', '메모'];
+var COL_PUBLIC = 4;                 // D열 = 공개(체크박스)
+var MAX_LEN = 60;
+var CACHE_KEY = 'approved_v1';
+var CACHE_SEC = 300;                // 공개 목록 캐시 5분
+var GLOBAL_LIMIT_PER_MIN = 30;      // 사이트 전체 1분 저장 한도
+var LIST_LIMIT = 300;               // 돌려주는 최대 개수
+var COLORS = ['#FFC233', '#3D6BF0', '#3FBF6F', '#F2557F', '#9C82EA', '#3FC4D6'];
+var BANNED = ['시발', '씨발', 'ㅅㅂ', 'ㅆㅂ', '병신', 'ㅂㅅ', '개새', '존나', 'ㅈㄴ', '좆', '닥쳐', '꺼져', '미친놈', '미친년', 'fuck', 'shit'];
+
+/* ---------------- 시트 메뉴 ---------------- */
+function onOpen() {
+  SpreadsheetApp.getUi().createMenu('MAYBEMARK')
+    .addItem('처음 설정 (탭·머리글 만들기)', 'setup')
+    .addItem('공개 질문 questions.json 만들기', 'exportJson')
+    .addToUi();
+}
+
+/** 처음 한 번 실행: '질문' 탭과 머리글, 공개 체크박스 열을 만듭니다. */
+function setup() {
+  var ss = SpreadsheetApp.getActive();
+  var sh = ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
+  sh.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]).setFontWeight('bold').setBackground('#FFF4D6');
+  sh.setFrozenRows(1);
+  sh.setColumnWidth(1, 150); sh.setColumnWidth(2, 420); sh.setColumnWidth(3, 80); sh.setColumnWidth(4, 60); sh.setColumnWidth(5, 200);
+  return '설정 완료';
+}
+
+/* ---------------- 저장: 사이트 → 시트 ---------------- */
+function doPost(e) {
+  try {
+    var body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    if (body.website) return json_({ ok: true });                 // 로봇용 미끼 칸이 채워지면 조용히 무시
+
+    var text = String(body.text || '').replace(/\s+/g, ' ').trim();
+    var bad = check_(text);
+    if (bad) return json_({ ok: false, error: bad });
+    var color = COLORS.indexOf(body.color) > -1 ? body.color : COLORS[0];
+
+    var cache = CacheService.getScriptCache();
+    var minuteKey = 'n_' + Math.floor(Date.now() / 60000);
+    var n = Number(cache.get(minuteKey) || 0);
+    if (n >= GLOBAL_LIMIT_PER_MIN) return json_({ ok: false, error: '질문이 한꺼번에 몰리고 있어요. 1분 뒤 다시 띄워 주세요.' });
+    var dupKey = 'd_' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, text, Utilities.Charset.UTF_8));
+    if (cache.get(dupKey)) return json_({ ok: true });              // 같은 질문 10분 안 중복은 한 번만 저장
+
+    var lock = LockService.getScriptLock();
+    lock.waitLock(10000);
+    try {
+      var sh = sheet_();
+      sh.appendRow([new Date(), text, color, false, '']);
+      sh.getRange(sh.getLastRow(), COL_PUBLIC).insertCheckboxes();
+    } finally {
+      lock.releaseLock();
+    }
+    cache.put(minuteKey, String(n + 1), 90);
+    cache.put(dupKey, '1', 600);
+    return json_({ ok: true });
+  } catch (err) {
+    return json_({ ok: false, error: '잠시 뒤 다시 띄워 주세요.' });
+  }
+}
+
+/* ---------------- 공개 목록: 시트 → 사이트 ---------------- */
+function doGet(e) {
+  var action = (e && e.parameter && e.parameter.action) || 'list';
+  if (action !== 'list') return json_({ ok: false, error: 'unknown action' });
+  var cache = CacheService.getScriptCache();
+  var hit = cache.get(CACHE_KEY);
+  if (hit) return ContentService.createTextOutput(hit).setMimeType(ContentService.MimeType.JSON);
+  var out = JSON.stringify({ ok: true, items: approved_() });
+  if (out.length < 90000) cache.put(CACHE_KEY, out, CACHE_SEC);
+  return ContentService.createTextOutput(out).setMimeType(ContentService.MimeType.JSON);
+}
+
+/* '공개' 칸을 바꾸면 캐시를 지워서 다음 요청부터 바로 반영 */
+function onEdit(e) {
+  try {
+    if (!e || !e.range) return;
+    if (e.range.getSheet().getName() !== SHEET_NAME) return;
+    if (e.range.getColumn() <= COL_PUBLIC && e.range.getLastColumn() >= COL_PUBLIC) {
+      CacheService.getScriptCache().remove(CACHE_KEY);
+    }
+  } catch (err) {}
+}
+
+/** 공연 후: 공개된 질문을 JSON으로 만들어 '내보내기' 탭 A1에 넣습니다. 복사해서 GitHub의 data/questions.json에 붙여 넣으세요. */
+function exportJson() {
+  var ss = SpreadsheetApp.getActive();
+  var out = ss.getSheetByName('내보내기') || ss.insertSheet('내보내기');
+  out.clear();
+  out.getRange('A1').setValue(JSON.stringify(approved_(), null, 2)).setWrap(true);
+  out.setColumnWidth(1, 700);
+  SpreadsheetApp.getUi().alert("'내보내기' 탭 A1 칸의 내용을 복사해 GitHub의 data/questions.json에 붙여 넣으세요.");
+}
+
+/* ---------------- 내부 함수 ---------------- */
+function sheet_() {
+  var sh = SpreadsheetApp.getActive().getSheetByName(SHEET_NAME);
+  if (!sh) { setup(); sh = SpreadsheetApp.getActive().getSheetByName(SHEET_NAME); }
+  return sh;
+}
+
+function approved_() {
+  var sh = sheet_();
+  var last = sh.getLastRow();
+  if (last < 2) return [];
+  var rows = sh.getRange(2, 1, last - 1, 4).getValues();
+  var tz = Session.getScriptTimeZone() || 'Asia/Seoul';
+  var items = [];
+  for (var i = rows.length - 1; i >= 0 && items.length < LIST_LIMIT; i--) {
+    var r = rows[i];
+    if (r[3] === true && r[1]) {
+      items.push({
+        t: String(r[1]).slice(0, MAX_LEN),
+        c: String(r[2] || COLORS[0]),
+        d: r[0] instanceof Date ? Utilities.formatDate(r[0], tz, 'yyyy-MM-dd') : ''
+      });
+    }
+  }
+  return items;   // 최신순
+}
+
+function check_(t) {
+  if (t.length < 2) return '질문을 두 글자 이상 적어 주세요.';
+  if (t.length > MAX_LEN) return MAX_LEN + '자 안으로 적어 주세요.';
+  var low = t.toLowerCase().replace(/\s/g, '');
+  for (var i = 0; i < BANNED.length; i++) if (low.indexOf(BANNED[i]) > -1) return '고운 말로 다시 적어 줄래요?';
+  if (/01[016789][\s.\-]?\d{3,4}[\s.\-]?\d{4}/.test(t) || /\S+@\S+\.\S+/.test(t)) return '전화번호나 이메일은 적지 말아 주세요.';
+  return '';
+}
+
+function json_(o) {
+  return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
+}
