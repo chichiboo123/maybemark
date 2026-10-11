@@ -16,6 +16,8 @@
     set: function (k, v, s) { try { (s ? sessionStorage : localStorage).setItem(k, v); } catch (e) {} }
   };
   function esc(t) { var d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; }
+  /* '아기 질문 외' 처럼 역할 뒤에 붙는 말 */
+  function roleName(c) { return c.role + (c.extra ? ' ' + c.extra : ''); }
 
   /* =========================================================
      소리: '딩동' 안내음 (파일 없이 Web Audio로 만듦)
@@ -95,6 +97,18 @@
 
   var progressQ = $('#progressQ'), progressPath = $('.progress-path');
   var lightIds = { prologue: 1, world: 1, cast: 1, numbers: 1, stop: 1, stages: 1 };
+  /* 메뉴에 없는 구역은 가장 가까운 메뉴로 묶음 */
+  var navOf = { world: 'world', story: 'world', cast: 'cast', numbers: 'numbers', stop: 'numbers', stages: 'stages', ask: 'ask', epilogue: 'ask' };
+  var navLinks = $$('a', nav), curNav = null;
+  function paintNav(id) {
+    var key = navOf[id] || null;
+    if (key === curNav) return; curNav = key;
+    navLinks.forEach(function (a) {
+      var on = a.getAttribute('href') === '#' + key;
+      a.classList.toggle('is-current', on);
+      if (on) a.setAttribute('aria-current', 'true'); else a.removeAttribute('aria-current');
+    });
+  }
   var ticking = false;
   function onScroll() {
     if (ticking) return; ticking = true;
@@ -106,10 +120,47 @@
       var el = document.elementFromPoint(window.innerWidth - 30, window.innerHeight / 2);
       var sec = el && el.closest ? el.closest('section') : null;
       progressPath.classList.toggle('on-light', !!(sec && lightIds[sec.id]));
+      paintNav(sec ? sec.id : null);
     });
   }
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onScroll);
+
+  /* =========================================================
+     자석 스크롤: 휠 한 번에 한 페이지씩
+     (터치·키보드는 CSS scroll-snap이 맡고, 휠만 여기서 정리)
+     긴 구역은 안쪽을 끝까지 읽은 다음에 넘어감
+     ========================================================= */
+  var pages = $$('.hero, .sec, .epilogue');
+  var turnUntil = 0, lastWheel = 0, SLACK = 24; /* 이 정도 넘치는 건 한 화면으로 봄 */
+  function pageAt(y) {
+    var idx = 0;
+    pages.forEach(function (s, i) { if (s.offsetTop <= y + 2) idx = i; });
+    return idx;
+  }
+  function turnTo(y) {
+    turnUntil = Date.now() + 850;
+    window.scrollTo({ top: Math.max(0, Math.round(y)), behavior: reduceMotion ? 'auto' : 'smooth' });
+  }
+  window.addEventListener('wheel', function (e) {
+    if (e.ctrlKey || document.body.classList.contains('is-intro') || (e.target.closest && e.target.closest('dialog'))) return;
+    var dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+    if (!dy || Math.abs(dy) < Math.abs(e.deltaX)) return;
+    var now = Date.now(), gap = now - lastWheel; lastWheel = now;
+    var y = window.scrollY, vh = window.innerHeight;
+    var i = pageAt(y), cur = pages[i], top = cur.offsetTop, bottom = top + cur.offsetHeight;
+    /* 긴 구역 안쪽이거나 마지막 페이지 아래(푸터)로 가는 중이면 평소처럼 */
+    if (dy > 0 && (y + vh < bottom - SLACK || i === pages.length - 1)) return;
+    if (dy < 0 && y > top + SLACK) return;
+    if (dy < 0 && i === 0) return;
+    e.preventDefault();
+    /* 넘기는 중이거나, 같은 손짓의 관성 휠이 이어지는 중이면 무시 */
+    if (now < turnUntil || gap < 160) { if (now >= turnUntil) turnUntil = now + 160; return; }
+    if (dy > 0) { turnTo(pages[i + 1].offsetTop); return; }
+    var prev = pages[i - 1];
+    /* 위로 갈 때 긴 구역은 아랫부분부터 보여 줌 */
+    turnTo(prev.offsetHeight > vh + SLACK ? prev.offsetTop + prev.offsetHeight - vh : prev.offsetTop);
+  }, { passive: false });
 
   /* 스크롤 등장 */
   var io = new IntersectionObserver(function (es) {
@@ -156,10 +207,10 @@
      ========================================================= */
   var grid = $('#doorGrid'), opened = {};
   try { opened = JSON.parse(store.get('mm_doors') || '{}') || {}; } catch (e) { opened = {}; }
-  D.cast.forEach(function (c) {
+  D.cast.forEach(function (c, i) {
     var li = document.createElement('li');
     li.className = 'door-card reveal' + (opened[c.id] ? ' is-open' : '');
-    li.style.setProperty('--c', c.color); li.style.setProperty('--bg', c.bg);
+    li.style.setProperty('--c', c.color); li.style.setProperty('--bg', c.bg); li.style.setProperty('--i', i % 4);
     li.innerHTML =
       '<button class="door-btn" type="button" aria-expanded="' + (opened[c.id] ? 'true' : 'false') + '" aria-label="' + esc(c.role) + '의 문 열기">' +
         '<div class="door-frame">' +
@@ -167,8 +218,7 @@
           '<span class="door-leaf2" aria-hidden="true"><b>?</b><i></i></span>' +
         '</div>' +
       '</button>' +
-      '<p class="door-name">' + esc(c.role) + '<small>' + esc(c.actor) + (c.extra ? ' · ' + esc(c.extra) : '') + '</small></p>' +
-      '<p class="door-hint">문을 눌러 보세요</p>' +
+      '<p class="door-name">' + esc(c.role) + (c.extra ? '<em>' + esc(c.extra) + '</em>' : '') + '<small>' + esc(c.actor) + '</small></p>' +
       '<div class="door-info"><p class="door-line">"' + esc(c.line) + '"</p><p class="door-desc">' + esc(c.desc) + '</p></div>';
     $('.door-btn', li).addEventListener('click', function () {
       var isOpen = li.classList.toggle('is-open');
@@ -280,16 +330,16 @@
      ========================================================= */
   var today = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
   var todayKey = today.getFullYear() + '-' + ('0' + (today.getMonth() + 1)).slice(-2) + '-' + ('0' + today.getDate()).slice(-2);
-  $('#stageList').innerHTML = D.stages.map(function (s) {
+  $('#stageList').innerHTML = D.stages.map(function (s, i) {
     var past = s.date < todayKey, isToday = s.date === todayKey;
     var mm = Number(s.date.slice(5, 7)), dd = Number(s.date.slice(8, 10));
-    return '<li class="stage reveal' + (past ? ' is-past' : '') + '">' +
+    return '<li class="stage reveal' + (past ? ' is-past' : '') + '" style="--i:' + i + '">' +
       '<div class="stage-date"><b>' + mm + '.' + dd + '</b><span>' + s.day + ' ' + s.time + '</span></div>' +
       '<div><span class="stage-tag">' + (isToday ? '오늘의 무대' : past ? '지나온 무대' : '다가올 무대') + '</span>' +
       '<p class="stage-title">' + esc(s.title) + '</p><p class="stage-meta">' + esc(s.place) + '</p></div></li>';
   }).join('');
   $('#creditList').innerHTML = D.credits.map(function (c) { return '<dt>' + esc(c[0]) + '</dt><dd>' + esc(c[1]) + '</dd>'; }).join('');
-  $('#castLine').innerHTML = D.cast.map(function (c) { return '<b>' + esc(c.role) + '</b> ' + esc(c.actor); }).join(' · ');
+  $('#castLine').innerHTML = D.cast.map(function (c) { return '<span><b>' + esc(roleName(c)) + '</b> ' + esc(c.actor) + '</span>'; }).join(' ');
   $('#thanks').textContent = D.thanks;
 
   /* =========================================================

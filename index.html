@@ -105,12 +105,12 @@
   <!-- ========== 3. 물음표 월드 안내도 ========== -->
   <section class="world sec" id="world">
     <div class="wrap">
-      <div class="sec-head reveal">
-        <p class="kicker">WORLD MAP</p>
-        <h2 class="pop-title">물음표 월드 안내도</h2>
-        <p class="sec-desc">반짝이는 표시를 눌러 보세요. 질문들이 사는 세상을 둘러볼 수 있어요.</p>
-      </div>
       <div class="world-grid">
+        <div class="sec-head world-head reveal">
+          <p class="kicker">WORLD MAP</p>
+          <h2 class="pop-title">물음표 월드 안내도</h2>
+          <p class="sec-desc">반짝이는 숫자를 눌러 보세요.<br />질문들이 사는 세상을 둘러볼 수 있어요.</p>
+        </div>
         <div class="world-map reveal" id="worldMap">
           <img src="assets/art.webp" alt="구름 사이로 열린 문들, 물음표 모양 길을 걷는 질문들, 바다와 우주, 새싹이 있는 물음표 월드" loading="lazy" width="1055" height="1491" />
           <!-- 핀은 js가 채움 -->
@@ -178,7 +178,7 @@
             <div class="bar" id="bar" role="progressbar" aria-valuemin="0" aria-valuemax="30" aria-valuenow="0"><span id="barFill"></span></div>
             <span class="time" id="time">0:00 / 0:30</span>
           </div>
-          <div class="lyric" id="lyric" aria-live="polite"></div>
+          <div class="lyric" id="lyric" aria-live="polite"><p class="lyric-empty">곡을 누르면 가사 한 대목이 여기에 떠올라요.</p></div>
         </article>
       </div>
     </div>
@@ -214,12 +214,14 @@
         <p class="kicker">STAGES</p>
         <h2 class="pop-title">무대 기록</h2>
       </div>
-      <ol class="stage-list" id="stageList"><!-- js --></ol>
-      <div class="credits reveal">
-        <h3>만든 사람들</h3>
-        <dl id="creditList"><!-- js --></dl>
-        <p class="cast-line" id="castLine"></p>
-        <p class="thanks" id="thanks"></p>
+      <div class="stages-grid">
+        <ol class="stage-list" id="stageList"><!-- js --></ol>
+        <div class="credits reveal">
+          <h3>만든 사람들</h3>
+          <dl id="creditList"><!-- js --></dl>
+          <p class="cast-line" id="castLine"></p>
+          <p class="thanks" id="thanks"></p>
+        </div>
       </div>
     </div>
   </section>
