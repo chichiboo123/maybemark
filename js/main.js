@@ -109,12 +109,14 @@
       if (on) a.setAttribute('aria-current', 'true'); else a.removeAttribute('aria-current');
     });
   }
-  var ticking = false;
+  var ticking = false, lastY = window.scrollY, scrollDir = 1;
   function onScroll() {
     if (ticking) return; ticking = true;
     requestAnimationFrame(function () {
       ticking = false;
       var y = window.scrollY, max = document.documentElement.scrollHeight - window.innerHeight;
+      if (y !== lastY) { scrollDir = y > lastY ? 1 : -1; lastY = y; }
+      paintDepth(y);
       topbar.classList.toggle('is-solid', y > 40);
       progressQ.style.top = (max > 0 ? Math.min(1, y / max) * 100 : 0) + '%';
       var el = document.elementFromPoint(window.innerWidth - 30, window.innerHeight / 2);
@@ -127,45 +129,76 @@
   window.addEventListener('resize', onScroll);
 
   /* =========================================================
-     자석 스크롤: 휠 한 번에 한 페이지씩
-     (터치·키보드는 CSS scroll-snap이 맡고, 휠만 여기서 정리)
-     긴 구역은 안쪽을 끝까지 읽은 다음에 넘어감
+     패럴랙스: 장식이 글보다 조금 느리게 움직여 깊이감을 줌
+     (각 구역에 --p: 화면 가운데 기준 -1 ~ 1, 히어로에 --out: 0 ~ 1)
      ========================================================= */
-  var pages = $$('.hero, .sec, .epilogue');
-  var turnUntil = 0, lastWheel = 0, SLACK = 24; /* 이 정도 넘치는 건 한 화면으로 봄 */
-  function pageAt(y) {
-    var idx = 0;
-    pages.forEach(function (s, i) { if (s.offsetTop <= y + 2) idx = i; });
-    return idx;
+  var hero = $('#hero'), depthSecs = $$('[data-depth]');
+  function paintDepth(y) {
+    if (reduceMotion) return;
+    var vh = window.innerHeight;
+    hero.style.setProperty('--out', Math.min(1, Math.max(0, y / vh)).toFixed(3));
+    depthSecs.forEach(function (s) {
+      var r = s.getBoundingClientRect();
+      if (r.bottom < -vh * 0.5 || r.top > vh * 1.5) return;
+      var p = (r.top + r.height / 2 - vh / 2) / vh;
+      s.style.setProperty('--p', Math.max(-1, Math.min(1, p)).toFixed(3));
+    });
   }
-  function turnTo(y) {
-    turnUntil = Date.now() + 850;
-    window.scrollTo({ top: Math.max(0, Math.round(y)), behavior: reduceMotion ? 'auto' : 'smooth' });
-  }
-  window.addEventListener('wheel', function (e) {
-    if (e.ctrlKey || document.body.classList.contains('is-intro') || (e.target.closest && e.target.closest('dialog'))) return;
-    var dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
-    if (!dy || Math.abs(dy) < Math.abs(e.deltaX)) return;
-    var now = Date.now(), gap = now - lastWheel; lastWheel = now;
-    var y = window.scrollY, vh = window.innerHeight;
-    var i = pageAt(y), cur = pages[i], top = cur.offsetTop, bottom = top + cur.offsetHeight;
-    /* 긴 구역 안쪽이거나 마지막 페이지 아래(푸터)로 가는 중이면 평소처럼 */
-    if (dy > 0 && (y + vh < bottom - SLACK || i === pages.length - 1)) return;
-    if (dy < 0 && y > top + SLACK) return;
-    if (dy < 0 && i === 0) return;
-    e.preventDefault();
-    /* 넘기는 중이거나, 같은 손짓의 관성 휠이 이어지는 중이면 무시 */
-    if (now < turnUntil || gap < 160) { if (now >= turnUntil) turnUntil = now + 160; return; }
-    if (dy > 0) { turnTo(pages[i + 1].offsetTop); return; }
-    var prev = pages[i - 1];
-    /* 위로 갈 때 긴 구역은 아랫부분부터 보여 줌 */
-    turnTo(prev.offsetHeight > vh + SLACK ? prev.offsetTop + prev.offsetHeight - vh : prev.offsetTop);
-  }, { passive: false });
 
-  /* 스크롤 등장 */
+  /* =========================================================
+     부드러운 자석: 스크롤을 멈춘 곳 바로 앞(가던 방향)에 페이지
+     경계가 있을 때만 살며시 맞춰 줌. 뒤로 끌어당기지 않고,
+     멀면 그대로 두고, 손대는 순간 바로 멈춤.
+     ========================================================= */
+  var pages = $$('.hero, .sec, .epilogue'), rootEl = document.documentElement;
+  var gliding = false, glideRaf = 0, settleTimer = null;
+  function cancelGlide() {
+    if (!gliding) return;
+    cancelAnimationFrame(glideRaf); gliding = false; rootEl.style.scrollBehavior = '';
+  }
+  function glideTo(target) {
+    var from = window.scrollY, dist = target - from, t0 = performance.now();
+    var dur = Math.min(700, 360 + Math.abs(dist) * 1.4);
+    gliding = true; rootEl.style.scrollBehavior = 'auto';
+    glideRaf = requestAnimationFrame(function step(now) {
+      if (!gliding) return;
+      var t = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - t, 3);
+      window.scrollTo(0, from + dist * e);
+      if (t < 1) glideRaf = requestAnimationFrame(step); else { gliding = false; rootEl.style.scrollBehavior = ''; }
+    });
+  }
+  function settle() {
+    if (reduceMotion || gliding || document.body.classList.contains('is-intro') || document.body.classList.contains('is-dark') || $('dialog[open]')) return;
+    var y = window.scrollY, vh = window.innerHeight, reach = Math.min(vh * 0.16, 150), best = null, aligned = false;
+    pages.forEach(function (s) {
+      var top = s.offsetTop, tall = s.offsetHeight > vh + 24;
+      [top, tall ? top + s.offsetHeight - vh : null].forEach(function (c) {
+        if (c === null) return;
+        if (Math.abs(c - y) < 3) { aligned = true; return; }
+        var d = (c - y) * scrollDir;
+        if (d < 3 || d > reach) return;
+        if (best === null || d < Math.abs(best - y)) best = c;
+      });
+    });
+    /* 이미 페이지 경계에 딱 맞아 있으면 그대로 */
+    if (best !== null && !aligned) glideTo(best);
+  }
+  if ('onscrollend' in window) window.addEventListener('scrollend', function () { clearTimeout(settleTimer); settleTimer = setTimeout(settle, 140); });
+  else window.addEventListener('scroll', function () { clearTimeout(settleTimer); settleTimer = setTimeout(settle, 220); }, { passive: true });
+  ['wheel', 'touchstart', 'keydown', 'mousedown'].forEach(function (t) {
+    window.addEventListener(t, function () { clearTimeout(settleTimer); cancelGlide(); }, { passive: true });
+  });
+
+  /* =========================================================
+     스크롤 등장: 화면에 들어오면 아래에서 살며시 떠오름
+     data-stagger 묶음은 자식이 차례로 떠오름
+     ========================================================= */
+  $$('[data-stagger]').forEach(function (g) {
+    Array.prototype.forEach.call(g.children, function (c, i) { c.classList.add('reveal'); c.style.setProperty('--i', i); });
+  });
   var io = new IntersectionObserver(function (es) {
     es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); } });
-  }, { threshold: 0.15 });
+  }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
   function watchReveal(root) { $$('.reveal', root).forEach(function (el) { io.observe(el); }); }
 
   function once(el, cls, th, cb) {
@@ -293,37 +326,49 @@
   audio.addEventListener('timeupdate', paintTime);
   audio.addEventListener('play', paintPlay);
   audio.addEventListener('pause', paintPlay);
-  audio.addEventListener('ended', function () { audio.currentTime = 0; paintTime(); paintPlay(); endRest(); });
+  audio.addEventListener('ended', function () { audio.currentTime = 0; paintTime(); paintPlay(); });
   $('#bar').addEventListener('click', function (e) {
     if (cur < 0 || !audio.duration) return;
     var r = this.getBoundingClientRect(); audio.currentTime = (e.clientX - r.left) / r.width * audio.duration;
   });
-  /* 넘버·정류장 구역을 벗어나면 멈춤 */
-  var audible = { numbers: false, stop: false };
-  var ao = new IntersectionObserver(function (es) {
-    es.forEach(function (e) { audible[e.target.id] = e.isIntersecting; });
-    if (!audible.numbers && !audible.stop && !audio.paused) audio.pause();
-  }, { threshold: 0.05 });
-  ao.observe($('#numbers')); ao.observe($('#stop'));
+  /* 넘버 구역을 벗어나면 멈춤 */
+  new IntersectionObserver(function (es) {
+    if (!es[0].isIntersecting && !audio.paused) audio.pause();
+  }, { threshold: 0.05 }).observe($('#numbers'));
 
   /* =========================================================
-     7. 몰라 정류장: 천 → 지붕, 쉬어가기
+     7. 몰라 정류장: 천 → 지붕, 잠깐 불 끄기
      ========================================================= */
   once($('#stopSvg'), 'is-roof', 0.5);
-  var restTimer = null, restLeft = 0;
-  $('#restBtn').addEventListener('click', function () {
-    if (document.body.classList.contains('is-rest')) { audio.pause(); endRest(); return; }
-    document.body.classList.add('is-rest');
-    pick(5, true);
-    restLeft = 30; paintRest();
-    restTimer = setInterval(function () { restLeft--; paintRest(); if (restLeft <= 0) endRest(); }, 1000);
-  });
-  function paintRest() { $('#restLabel').textContent = '쉬는 중… ' + restLeft + '초 (누르면 다시 출발)'; }
-  function endRest() {
-    if (!document.body.classList.contains('is-rest')) return;
-    clearInterval(restTimer); document.body.classList.remove('is-rest');
-    $('#restLabel').textContent = '잠시 쉬어가기 (30초)';
+  var dark = $('#blackout'), restBtn = $('#restBtn'), darkTimer = null;
+  function lightsOff() {
+    if (!dark.hidden) return;
+    cancelGlide();
+    dark.hidden = false;
+    void dark.offsetWidth; /* 바로 다음 프레임에 전환이 시작되도록 */
+    document.body.classList.add('is-rest', 'is-dark');
+    dark.classList.add('is-on');
+    dark.focus({ preventScroll: true });
+    darkTimer = setTimeout(lightsOn, 4600);
   }
+  function lightsOn() {
+    if (!dark.classList.contains('is-on')) return;
+    clearTimeout(darkTimer);
+    dark.classList.remove('is-on');
+    document.body.classList.remove('is-rest');
+    setTimeout(function () {
+      dark.hidden = true;
+      document.body.classList.remove('is-dark');
+      restBtn.focus({ preventScroll: true });
+    }, reduceMotion ? 0 : 1200);
+  }
+  restBtn.addEventListener('click', lightsOff);
+  dark.addEventListener('click', lightsOn);
+  dark.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') { e.preventDefault(); lightsOn(); }
+  });
+  /* 불이 꺼진 동안엔 뒤 화면이 움직이지 않게 */
+  ['wheel', 'touchmove'].forEach(function (t) { dark.addEventListener(t, function (e) { e.preventDefault(); }, { passive: false }); });
 
   /* =========================================================
      8. 무대 기록 · 크레딧
