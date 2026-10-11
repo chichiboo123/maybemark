@@ -5,7 +5,8 @@
  * 그래서 방문자는 "Google Apps Script 사용자가 만들었습니다" 안내 화면을 보지 않습니다.
  *
  *  - doPost : 사이트에서 보낸 질문을 '질문' 탭에 한 줄 추가 (공개 칸은 비어 있음)
- *  - doGet  : '공개' 칸에 체크된 질문만 돌려줌 (5분 캐시)
+ *  - doGet  : '공개' 칸에 체크된 질문 + 확인을 기다리는 질문 '개수'만 돌려줌 (5분 캐시)
+ *             확인 중인 질문의 글은 절대 내보내지 않습니다. 사이트에는 잠긴 문으로만 보입니다.
  *  - onEdit : '공개' 칸을 바꾸면 캐시를 지워 바로 반영
  *  - 메뉴 'MAYBEMARK' : 처음 설정 / questions.json 만들기
  */
@@ -18,6 +19,8 @@ var CACHE_KEY = 'approved_v1';
 var CACHE_SEC = 300;                // 공개 목록 캐시 5분
 var GLOBAL_LIMIT_PER_MIN = 30;      // 사이트 전체 1분 저장 한도
 var LIST_LIMIT = 300;               // 돌려주는 최대 개수
+var PENDING_HOURS = 48;             // 최근 몇 시간 안에 들어온 미공개 질문을 '확인 중'으로 셀지
+                                    // (공개하지 않을 질문은 '메모' 칸에 아무 글자나 적으면 세지 않음)
 var COLORS = ['#FFC233', '#3D6BF0', '#3FBF6F', '#F2557F', '#9C82EA', '#3FC4D6'];
 var BANNED = ['시발', '씨발', 'ㅅㅂ', 'ㅆㅂ', '병신', 'ㅂㅅ', '개새', '존나', 'ㅈㄴ', '좆', '닥쳐', '꺼져', '미친놈', '미친년', 'fuck', 'shit'];
 
@@ -68,6 +71,7 @@ function doPost(e) {
     }
     cache.put(minuteKey, String(n + 1), 90);
     cache.put(dupKey, '1', 600);
+    cache.remove(CACHE_KEY);                                       // '확인 중' 개수가 바로 바뀌도록
     return json_({ ok: true });
   } catch (err) {
     return json_({ ok: false, error: '잠시 뒤 다시 띄워 주세요.' });
@@ -81,17 +85,18 @@ function doGet(e) {
   var cache = CacheService.getScriptCache();
   var hit = cache.get(CACHE_KEY);
   if (hit) return ContentService.createTextOutput(hit).setMimeType(ContentService.MimeType.JSON);
-  var out = JSON.stringify({ ok: true, items: approved_() });
+  var snap = snapshot_();
+  var out = JSON.stringify({ ok: true, items: snap.items, pending: snap.pending });
   if (out.length < 90000) cache.put(CACHE_KEY, out, CACHE_SEC);
   return ContentService.createTextOutput(out).setMimeType(ContentService.MimeType.JSON);
 }
 
-/* '공개' 칸을 바꾸면 캐시를 지워서 다음 요청부터 바로 반영 */
+/* '공개'나 '메모' 칸을 바꾸면 캐시를 지워서 다음 요청부터 바로 반영 */
 function onEdit(e) {
   try {
     if (!e || !e.range) return;
     if (e.range.getSheet().getName() !== SHEET_NAME) return;
-    if (e.range.getColumn() <= COL_PUBLIC && e.range.getLastColumn() >= COL_PUBLIC) {
+    if (e.range.getColumn() <= COL_PUBLIC + 1 && e.range.getLastColumn() >= COL_PUBLIC) {
       CacheService.getScriptCache().remove(CACHE_KEY);
     }
   } catch (err) {}
@@ -102,7 +107,7 @@ function exportJson() {
   var ss = SpreadsheetApp.getActive();
   var out = ss.getSheetByName('내보내기') || ss.insertSheet('내보내기');
   out.clear();
-  out.getRange('A1').setValue(JSON.stringify(approved_(), null, 2)).setWrap(true);
+  out.getRange('A1').setValue(JSON.stringify(snapshot_().items, null, 2)).setWrap(true);
   out.setColumnWidth(1, 700);
   SpreadsheetApp.getUi().alert("'내보내기' 탭 A1 칸의 내용을 복사해 GitHub의 data/questions.json에 붙여 넣으세요.");
 }
@@ -114,24 +119,29 @@ function sheet_() {
   return sh;
 }
 
-function approved_() {
+/** 시트를 한 번 읽어 공개 질문(최신순)과 확인 중인 질문 개수를 함께 만듭니다. */
+function snapshot_() {
   var sh = sheet_();
   var last = sh.getLastRow();
-  if (last < 2) return [];
-  var rows = sh.getRange(2, 1, last - 1, 4).getValues();
+  if (last < 2) return { items: [], pending: 0 };
+  var rows = sh.getRange(2, 1, last - 1, 5).getValues();
   var tz = Session.getScriptTimeZone() || 'Asia/Seoul';
-  var items = [];
-  for (var i = rows.length - 1; i >= 0 && items.length < LIST_LIMIT; i--) {
+  var since = Date.now() - PENDING_HOURS * 3600 * 1000;
+  var items = [], pending = 0;
+  for (var i = rows.length - 1; i >= 0; i--) {
     var r = rows[i];
-    if (r[3] === true && r[1]) {
-      items.push({
+    if (!r[1]) continue;
+    if (r[3] === true) {
+      if (items.length < LIST_LIMIT) items.push({
         t: String(r[1]).slice(0, MAX_LEN),
         c: String(r[2] || COLORS[0]),
         d: r[0] instanceof Date ? Utilities.formatDate(r[0], tz, 'yyyy-MM-dd') : ''
       });
+    } else if (!r[4] && r[0] instanceof Date && r[0].getTime() > since) {
+      pending++;
     }
   }
-  return items;   // 최신순
+  return { items: items, pending: Math.min(pending, 30) };
 }
 
 function check_(t) {

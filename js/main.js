@@ -424,9 +424,175 @@
   }
   function say(m, err) { askMsg.textContent = m; askMsg.classList.toggle('is-error', !!err); }
 
+  /* =========================================================
+     질문의 문: 공개된 질문 하나하나가 저마다의 문이 되어 벽에 걸림
+     - 색 = 질문한 사람이 고른 색, 모양 = 질문마다 다름, 크기 = 질문 길이
+     - 내 질문은 내 화면에 바로 걸림(확인 중) → 선생님이 공개하면 모두에게
+     - 다른 사람의 확인 중인 질문은 글 없이 잠긴 문으로만 보임
+     - 이 구역이 보이는 동안 POLL_SEC마다 새로 열린 문을 불러옴
+     ========================================================= */
   var mine = [];
   try { mine = JSON.parse(store.get('mm_mine') || '[]') || []; } catch (e) { mine = []; }
-  var approved = [];
+  mine = mine.filter(function (q) { return q && typeof q.t === 'string'; });
+  var approved = [], pendingOthers = 0, isLive = false;
+  var wall = $('#qwall'), wallMore = $('#wallMore'), wallInfo = $('#wallInfo'), wallLive = $('#wallLive'), wallToast = $('#wallToast');
+  var wallPending = $('#wallPending'), pendingDoors = $('#pendingDoors');
+  var WALL_STEP = window.innerWidth >= 768 ? (C.WALL_COUNT || 40) : 18;
+  var wallLimit = WALL_STEP, wallShown = false, doorEls = {};
+  var SHAPES = ['arch', 'rect', 'round', 'double', 'tall'];
+  var HEX = /^#[0-9a-fA-F]{6}$/;
+
+  function hash(t) { var h = 2166136261; for (var i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+  function keyOf(q) { return q.t + '|' + (q.d || ''); }
+  function sizeOf(t) { return t.length <= 14 ? 's' : t.length <= 30 ? 'm' : 'l'; }
+  function has(list, t) { for (var i = 0; i < list.length; i++) if (list[i].t === t) return true; return false; }
+  function myWaiting() { return mine.slice(0, 5).filter(function (q) { return !has(approved, q.t); }); }
+
+  /* 똑똑: 문을 두드리는 소리 (소리를 켰을 때만) */
+  function knock() {
+    if (!soundOn) return;
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      var now = actx.currentTime;
+      [0, 0.16].forEach(function (t0) {
+        var o = actx.createOscillator(), g = actx.createGain();
+        o.type = 'triangle'; o.frequency.setValueAtTime(210, now + t0); o.frequency.exponentialRampToValueAtTime(90, now + t0 + 0.09);
+        g.gain.setValueAtTime(0.0001, now + t0); g.gain.exponentialRampToValueAtTime(0.35, now + t0 + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, now + t0 + 0.12);
+        o.connect(g); g.connect(actx.destination); o.start(now + t0); o.stop(now + t0 + 0.14);
+      });
+    } catch (e) {}
+  }
+
+  /* state: '' 공개된 질문, 'mine-wait' 내 질문(확인 중), 'mine-ok' 내 질문(공개됨) */
+  function makeDoor(q, state) {
+    var li = document.createElement('li'), h = hash(q.t);
+    li.className = 'qdoor qd-' + SHAPES[h % SHAPES.length] + ' qd-' + sizeOf(q.t) + (state ? ' is-' + state : '');
+    li.style.setProperty('--c', HEX.test(q.c) ? q.c : '#9C82EA');
+    li.style.setProperty('--tilt', ((h >>> 3) % 31 / 10 - 1.5).toFixed(1) + 'deg');
+    li.style.setProperty('--bob', (5 + (h >>> 7) % 40 / 10).toFixed(1) + 's');
+    li.style.setProperty('--bobDelay', (-((h >>> 11) % 60) / 10).toFixed(1) + 's');
+    li.innerHTML =
+      '<button type="button" class="qdoor-body" aria-label="질문의 문: ' + esc(q.t) + (state ? (state === 'mine-ok' ? ' (내 질문, 공개됨)' : ' (내 질문, 확인 중)') : '') + '">' +
+        '<span class="qdoor-win" aria-hidden="true">?</span>' +
+        '<span class="qdoor-plate">' + esc(q.t) + '</span>' +
+        '<span class="qdoor-knob" aria-hidden="true"></span>' +
+      '</button>' +
+      (state ? '<span class="qdoor-tag" aria-hidden="true">' + (state === 'mine-ok' ? '내 질문 · 공개됨' : '내 질문 · 확인 중') + '</span>' : '');
+    $('.qdoor-body', li).addEventListener('click', function () {
+      var b = this; b.classList.remove('is-knock'); void b.offsetWidth; b.classList.add('is-knock'); knock();
+    });
+    return li;
+  }
+
+  /* 있는 문은 그대로 두고, 새 문만 끼워 넣음 (떠 있는 움직임이 끊기지 않게) */
+  function renderWall(fresh) {
+    fresh = fresh || {};
+    var want = [], keep = {};
+    function add(q, state, k) {
+      var d = doorEls[k];
+      if (!d || d.state !== state) d = doorEls[k] = { el: makeDoor(q, state), state: state };
+      if (fresh[k]) { d.el.classList.remove('is-enter', 'is-born'); void d.el.offsetWidth; d.el.classList.add('is-born'); }
+      keep[k] = 1; want.push(d.el);
+    }
+    var waiting = myWaiting();
+    waiting.forEach(function (q) { add(q, 'mine-wait', 'm:' + q.t); });
+    approved.slice(0, wallLimit).forEach(function (q) { add(q, has(mine, q.t) ? 'mine-ok' : '', 'a:' + keyOf(q)); });
+    Object.keys(doorEls).forEach(function (k) { if (!keep[k]) delete doorEls[k]; });
+
+    if (!want.length) {
+      wall.innerHTML = '<li class="qwall-empty"><span class="qdoor-outline" aria-hidden="true">?</span>아직 열린 문이 없어요.<br>첫 번째 질문의 문을 만들어 주세요!</li>';
+    } else {
+      var empty = $('.qwall-empty', wall); if (empty) empty.remove();
+      var cur = wall.firstChild;
+      want.forEach(function (el) { if (el === cur) cur = cur.nextSibling; else wall.insertBefore(el, cur); });
+      while (cur) { var nx = cur.nextSibling; wall.removeChild(cur); cur = nx; }
+    }
+
+    /* 다른 사람의 확인 중 질문: 글 없이 작은 잠긴 문으로만 */
+    var nGhost = Math.min(pendingOthers, 8);
+    while (pendingDoors.children.length < nGhost) { var gl = document.createElement('li'); gl.innerHTML = '<span class="material-icons-outlined">lock</span>'; pendingDoors.appendChild(gl); }
+    while (pendingDoors.children.length > nGhost) pendingDoors.removeChild(pendingDoors.lastChild);
+    wallPending.hidden = !pendingOthers;
+
+    var info = ['열린 문 ' + approved.length + '개'];
+    if (waiting.length) info.push('내 질문 ' + waiting.length + '개 확인 중');
+    if (pendingOthers) info.push('다른 질문 ' + pendingOthers + '개 확인 중');
+    wallInfo.textContent = info.join(' · ');
+    wallLive.hidden = !isLive;
+    var more = approved.length - wallLimit;
+    wallMore.hidden = more <= 0;
+    if (more > 0) wallMore.textContent = '문 더 보기 (+' + Math.min(more, WALL_STEP) + ')';
+    $('#allCount').textContent = approved.length ? '(' + approved.length + ')' : '';
+  }
+  wallMore.addEventListener('click', function () { wallLimit += WALL_STEP; renderWall(); });
+
+  var toastTimer = null;
+  function toast(m) {
+    wallToast.textContent = m; wallToast.classList.add('is-show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { wallToast.classList.remove('is-show'); }, 3600);
+  }
+
+  function fetchJSON(url, ms) {
+    return new Promise(function (ok, no) {
+      var done = false, tm = setTimeout(function () { if (!done) { done = true; no(new Error('timeout')); } }, ms || 8000);
+      fetch(url, { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (j) { if (!done) { done = true; clearTimeout(tm); ok(j); } })
+        .catch(function (e) { if (!done) { done = true; clearTimeout(tm); no(e); } });
+    });
+  }
+  function clean(items) {
+    return (Array.isArray(items) ? items : []).filter(function (q) { return q && typeof q.t === 'string' && q.t; })
+      .map(function (q) { return { t: q.t.slice(0, MAX), c: q.c, d: q.d || '' }; });
+  }
+  function loadQuestions() {
+    var api = C.API_URL
+      ? fetchJSON(C.API_URL + (C.API_URL.indexOf('?') > -1 ? '&' : '?') + 'action=list&_=' + Date.now()).then(function (r) {
+          if (!r || !r.items) throw new Error('bad');
+          return { items: clean(r.items), pending: Number(r.pending) || 0, live: true };
+        })
+      : Promise.reject();
+    return api.catch(function () {
+      return fetchJSON(C.FALLBACK_JSON || 'data/questions.json').then(function (j) { return { items: clean(j), pending: 0, live: false }; });
+    });
+  }
+
+  var POLL_MS = Math.max(15, C.POLL_SEC || 30) * 1000, pollTimer = null, wallVisible = false, busy = false, lastLoad = 0;
+  function refresh(first) {
+    if (busy) return Promise.resolve(); busy = true; lastLoad = Date.now();
+    return loadQuestions().then(function (res) {
+      var before = {}; approved.forEach(function (q) { before[keyOf(q)] = 1; });
+      var fresh = {}, arrived = 0, mineOpened = 0;
+      if (!first) res.items.forEach(function (q) {
+        if (before[keyOf(q)]) return;
+        fresh['a:' + keyOf(q)] = 1;
+        if (has(mine, q.t)) mineOpened++; else arrived++;
+      });
+      approved = res.items; isLive = res.live;
+      pendingOthers = Math.max(0, Math.min(30, res.pending - myWaiting().length));
+      renderWall(fresh);
+      if (first) enterWall();
+      if (mineOpened) { toast('딩동! 내 질문의 문이 모두에게 열렸어요.'); ding(); }
+      else if (arrived) { toast('딩동! 새로운 질문의 문 ' + arrived + '개가 열렸어요.'); ding(); }
+    }).catch(function () {}).then(function () { busy = false; });
+  }
+  /* 처음 보일 때: 문들이 차례로 떠오름 */
+  function enterWall() {
+    if (wallShown) return; wallShown = true;
+    $$('.qdoor', wall).forEach(function (el, i) { el.style.setProperty('--i', Math.min(i, 24)); el.classList.add('is-enter'); });
+  }
+  function schedule() {
+    clearTimeout(pollTimer);
+    if (!wallVisible || !C.API_URL) return;
+    pollTimer = setTimeout(function () { if (!document.hidden) refresh(); schedule(); }, POLL_MS + Math.random() * 5000);
+  }
+  new IntersectionObserver(function (es) {
+    wallVisible = es[0].isIntersecting;
+    if (wallVisible && Date.now() - lastLoad > 10000) refresh(!lastLoad);
+    schedule();
+  }, { rootMargin: '300px 0px' }).observe($('#ask'));
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && wallVisible && Date.now() - lastLoad > 10000) refresh();
+  });
+  renderWall();
 
   $('#askForm').addEventListener('submit', function (e) {
     e.preventDefault();
@@ -438,11 +604,15 @@
     store.set('mm_last', String(Date.now()));
 
     var q = { t: t, c: color, d: todayKey, mine: true };
-    mine.unshift(q); mine = mine.slice(0, 20); store.set('mm_mine', JSON.stringify(mine));
-    addSkyItem(q, true);
+    mine = [q].concat(mine.filter(function (m) { return m.t !== t; })).slice(0, 20);
+    store.set('mm_mine', JSON.stringify(mine));
+    var fresh = {}; fresh['m:' + t] = 1;
+    renderWall(fresh);
+    var mineEl = doorEls['m:' + t];
+    if (mineEl) setTimeout(function () { mineEl.el.scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' }); }, 150);
     ding();
     askText.value = ''; $('#askCount').textContent = '0 / ' + MAX;
-    say('딩동! 새로운 질문이 탄생했습니다.');
+    say('딩동! 내 질문의 문이 생겼어요.');
 
     if (C.API_URL) {
       $('#askBtn').disabled = true;
@@ -451,82 +621,18 @@
         headers: { 'Content-Type': 'text/plain;charset=utf-8' }, /* 사전 확인(CORS) 없이 보내기 */
         body: JSON.stringify({ text: t, color: color, website: '' })
       }).then(function (r) { return r.json(); }).then(function (res) {
-        if (res && res.ok) say('딩동! 질문이 물음표 월드에 도착했어요. 선생님이 확인하면 모두의 하늘에 떠올라요.');
+        if (res && res.ok) say('딩동! 질문이 도착했어요. 선생님이 확인하면 모두에게 문이 열려요.');
         else say((res && res.error) || '잠시 뒤 다시 띄워 주세요.', true);
       }).catch(function () {
-        say('지금은 질문이 저장되지 않았어요. 내 화면에만 떠 있어요.', true);
+        say('지금은 질문이 저장되지 않았어요. 내 화면에만 문이 있어요.', true);
       }).then(function () { $('#askBtn').disabled = false; });
     }
   });
 
-  /* 하늘 */
-  var sky = $('#sky'), skyCount = 0;
-  function rand(a, b) { return a + Math.random() * (b - a); }
-  function spot() {
-    var wide = window.innerWidth >= 900;
-    if (wide) return { x: Math.random() < 0.5 ? rand(3, 22) : rand(76, 92), y: rand(8, 88) };
-    return { x: rand(4, 86), y: Math.random() < 0.45 ? rand(2, 9) : rand(84, 94) };
-  }
-  function addSkyItem(q, isNew) {
-    var limit = window.innerWidth >= 900 ? (C.SKY_COUNT || 30) : 14;
-    if (skyCount >= limit) { var first = $('.sky-q', sky); if (first) { first.remove(); skyCount--; } }
-    var b = document.createElement('button'), p = spot();
-    b.type = 'button'; b.className = 'sky-q' + (isNew ? ' is-new' : '');
-    b.style.left = p.x + '%'; b.style.top = p.y + '%';
-    b.style.setProperty('--c', q.c || '#FFC233');
-    b.style.setProperty('--d', rand(5, 9).toFixed(1) + 's');
-    b.style.setProperty('--delay', (-rand(0, 6)).toFixed(1) + 's');
-    b.style.fontSize = rand(26, 44).toFixed(0) + 'px';
-    b.setAttribute('aria-label', '질문: ' + q.t);
-    b.innerHTML = '?<span class="bub">' + esc(q.t) + (q.mine ? '<br><small style="opacity:.6">내 질문 · 확인 중</small>' : '') + '</span>';
-    b.addEventListener('click', function () {
-      $$('.sky-q.is-show', sky).forEach(function (x) { if (x !== b) x.classList.remove('is-show'); });
-      b.classList.toggle('is-show');
-    });
-    sky.appendChild(b); skyCount++;
-  }
-  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
-
-  function fetchJSON(url, ms) {
-    return new Promise(function (ok, no) {
-      var done = false, tm = setTimeout(function () { if (!done) { done = true; no(new Error('timeout')); } }, ms || 8000);
-      fetch(url).then(function (r) { return r.json(); }).then(function (j) { if (!done) { done = true; clearTimeout(tm); ok(j); } })
-        .catch(function (e) { if (!done) { done = true; clearTimeout(tm); no(e); } });
-    });
-  }
-  function loadApproved() {
-    var fromApi = C.API_URL ? fetchJSON(C.API_URL + (C.API_URL.indexOf('?') > -1 ? '&' : '?') + 'action=list').then(function (r) { return r && r.items ? r.items : []; }) : Promise.reject();
-    return fromApi.catch(function () { return fetchJSON(C.FALLBACK_JSON || 'data/questions.json'); })
-      .then(function (items) { return Array.isArray(items) ? items : []; })
-      .catch(function () { return []; });
-  }
-  var skyLoaded = false;
-  function fillSky() {
-    if (skyLoaded) return; skyLoaded = true;
-    loadApproved().then(function (items) {
-      approved = items;
-      var mineSet = {}; mine.forEach(function (m) { mineSet[m.t] = 1; });
-      var pool = shuffle(items.filter(function (q) { return !mineSet[q.t]; })).slice(0, (C.SKY_COUNT || 30) - Math.min(mine.length, 5));
-      mine.slice(0, 5).forEach(function (q) { addSkyItem(q, false); });
-      pool.forEach(function (q) { addSkyItem(q, false); });
-      /* 질문이 아직 적을 때는 장식용 물음표로 하늘을 채움 */
-      for (var k = mine.length + pool.length; k < 10; k++) {
-        var s = document.createElement('span'), p = spot();
-        s.className = 'sky-deco'; s.setAttribute('aria-hidden', 'true'); s.textContent = '?';
-        s.style.left = p.x + '%'; s.style.top = p.y + '%';
-        s.style.setProperty('--c', D.questionColors[k % D.questionColors.length]);
-        s.style.setProperty('--d', rand(5, 9).toFixed(1) + 's'); s.style.setProperty('--delay', (-rand(0, 6)).toFixed(1) + 's');
-        s.style.fontSize = rand(20, 36).toFixed(0) + 'px';
-        sky.appendChild(s);
-      }
-      $('#allCount').textContent = items.length ? '(' + items.length + ')' : '';
-    });
-  }
-  new IntersectionObserver(function (es, o) { if (es[0].isIntersecting) { fillSky(); o.disconnect(); } }, { rootMargin: '400px' }).observe($('#ask'));
-
   $('#allBtn').addEventListener('click', function () {
-    var rows = mine.map(function (q) { return '<li style="--c:' + esc(q.c) + '"><b>?</b><div>' + esc(q.t) + '<small>내 질문 · 확인 중</small></div></li>'; })
-      .concat(approved.map(function (q) { return '<li style="--c:' + esc(q.c) + '"><b>?</b><div>' + esc(q.t) + (q.d ? '<small>' + esc(q.d) + '</small>' : '') + '</div></li>'; }));
+    var dot = function (c) { return HEX.test(c) ? c : '#9C82EA'; };
+    var rows = myWaiting().map(function (q) { return '<li style="--c:' + dot(q.c) + '"><b>?</b><div>' + esc(q.t) + '<small>내 질문 · 확인 중</small></div></li>'; })
+      .concat(approved.map(function (q) { return '<li style="--c:' + dot(q.c) + '"><b>?</b><div>' + esc(q.t) + (q.d ? '<small>' + esc(q.d) + '</small>' : '') + '</div></li>'; }));
     $('#allList').innerHTML = rows.length ? rows.join('') : '<li>아직 공개된 질문이 없어요. 첫 질문을 띄워 주세요!</li>';
     openModal($('#allModal'));
   });
