@@ -204,7 +204,7 @@
         desc: 'A can-do question who finds the way by doing rather than worrying.' },
       { role: 'What If', actor: 'Ju Eun-bin', line: 'What if? Then would we all be floating around?',
         desc: 'A free, floaty question who dreams up wild ideas and brand-new possibilities.' },
-      { role: 'Dunno', actor: 'Yoon Ji-yeon', line: 'Yeah. Maybe it\'ll open tomorrow… Dunno.',
+      { role: 'Dunno', actor: 'Yoon Ji-yeon', line: 'How about taking a little break?',
         desc: 'A slow, unhurried being who shows that it\'s okay to stay with not knowing and rest for a while.' },
       { role: 'Baby Question', actor: 'Lee Ha-eun', extra: '& others', line: 'Can I join the expedition too?',
         desc: 'The youngest, newly born question — pure, brave and determined to open a door all by themselves.' },

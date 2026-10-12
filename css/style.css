@@ -234,6 +234,8 @@ button { font-family: inherit; color: inherit; }
   transform: scale(1.04); animation: drift 24s ease-in-out infinite alternate;
 }
 @keyframes drift { to { transform: scale(1.1) translateY(-1.5%); } }
+/* 데스크톱: 그림이 아주 천천히 다가옴 (카메라가 살짝 움직이는 느낌) */
+@keyframes artDrift { from { scale: 1; } to { scale: 1.05; } }
 .hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(7, 18, 81, .82) 0%, rgba(7, 18, 81, .35) 38%, rgba(7, 18, 81, 0) 60%, rgba(7, 18, 81, .45) 100%); }
 .hero-inner { position: relative; z-index: 2; width: 100%; max-width: var(--wrap); margin: 0 auto; padding: calc(var(--header-h) + 24px) 20px 40px; text-align: center; }
 /* 소제목·로고·(영어)부제를 로고 폭 기준으로 가운데 정렬 */
@@ -275,7 +277,27 @@ button { font-family: inherit; color: inherit; }
   78% { opacity: .95; scale: .8; rotate: 55deg; }
   88% { opacity: 0; scale: 0; rotate: 80deg; }
 }
-@media (prefers-reduced-motion: reduce) { .logo-shine, .logo-glints { display: none; } .hero-logo::before { animation: none; opacity: .8; } }
+/* 4) 오른쪽 그림: 해가 은은하게 숨 쉬고, 밤하늘 별이 반짝이고, 새싹 흙과 밤하늘에서 빛가루가 떠오름 (과하지 않게) */
+.art-fx { position: absolute; inset: 0; pointer-events: none; }
+.sun-glow { position: absolute; left: 59%; top: 21.5%; width: 26%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 252, 225, .75) 0%, rgba(255, 226, 120, .35) 35%, transparent 70%); mix-blend-mode: screen;
+  animation: sunBreath 6s ease-in-out infinite alternate; }
+@keyframes sunBreath { from { opacity: .35; scale: .85; } to { opacity: .9; scale: 1.1; } }
+.art-glint { animation-duration: 6s; }
+.mote { position: absolute; left: var(--x); top: var(--y); width: var(--m); height: var(--m); border-radius: 50%; opacity: 0;
+  background: radial-gradient(circle, #FFFDF0 0 35%, rgba(255, 222, 120, .75) 60%, transparent 75%);
+  box-shadow: 0 0 10px 2px rgba(255, 220, 120, .75), 0 0 2px #fff;
+  animation: moteRise var(--t, 10s) ease-out var(--d, 0s) infinite; }
+@keyframes moteRise {
+  0% { opacity: 0; translate: 0 0; scale: .6; }
+  12% { opacity: 1; scale: 1; }
+  50% { translate: 14px -90px; }
+  80% { opacity: .7; }
+  100% { opacity: 0; translate: -8px -190px; scale: .5; }
+}
+/* 휴대폰은 그림 위에 로고가 겹쳐 있어 일부만 */
+@media (max-width: 1023px) { .art-glint:nth-of-type(n+7), .mote:nth-of-type(n+15) { display: none; } }
+@media (prefers-reduced-motion: reduce) { .logo-shine, .logo-glints, .art-fx { display: none; } .hero-logo::before { animation: none; opacity: .8; } }
 .hero-sub { margin-bottom: 6px; max-width: min(560px, 92vw); font-size: 15px; font-weight: 700; letter-spacing: .02em; text-align: center; text-shadow: 0 1px 6px rgba(0, 0, 0, .5); }
 .hero-tagline { max-width: min(500px, 88vw); margin-top: 2px; font-size: 14px; line-height: 1.55; text-align: center; color: rgba(255, 255, 255, .88); text-shadow: 0 1px 6px rgba(0, 0, 0, .5); }
 .hero-tagline span { display: block; }
@@ -698,7 +720,7 @@ html[lang="en"] .qd-l { --w: 210px; --h: 256px; --fs: 13px; }
   .menu-btn { display: none; }
   .topbar { padding: 0 28px; }
   .hero { align-items: center; background: radial-gradient(ellipse at 30% 110%, #2F64D8 0%, transparent 60%), linear-gradient(180deg, #061049 0%, #0E2591 100%); }
-  .hero-bg { left: auto; width: min(64vw, calc(100svh * 1055 / 1491 * 1.15)); background-size: cover; background-position: center 40%; animation: none; transform: none;
+  .hero-bg { left: auto; width: min(64vw, calc(100svh * 1055 / 1491 * 1.15)); background-size: cover; background-position: center 40%; animation: artDrift 40s ease-in-out infinite alternate; transform: none;
     -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 28%); mask-image: linear-gradient(90deg, transparent 0%, #000 28%); }
   .hero::after { background: linear-gradient(0deg, rgba(7, 18, 81, .35) 0%, transparent 25%); }
   .hero-inner { text-align: left; padding-top: var(--header-h); }

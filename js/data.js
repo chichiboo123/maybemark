@@ -20,7 +20,7 @@ window.MM_DATA = {
       line: '만약에? 그럼 우리 모두 둥둥 떠다니는 걸까?' },
     { id: 'molla',  role: '몰라',      actor: '윤지연', color: '#4A4A5C', bg: '#E6E6EF',
       desc: '모르는 채 잠시 머물고 쉬어가는 시간을 알려주는 느릿느릿한 존재.',
-      line: "응. 내일은 열릴지도 '몰라'" },
+      line: '잠깐 쉬어가는 건 어때?' },
     { id: 'baby',   role: '아기 질문', actor: '이하은', color: '#8BCF4A', bg: '#ECF8DC', extra: '외',
       desc: '새로 태어난 가장 어린 질문으로, 문을 스스로 열고자 도전하는 순수하고 씩씩한 질문.',
       line: '나도 탐험대 해도 돼요?' },
