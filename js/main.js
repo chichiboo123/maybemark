@@ -446,7 +446,11 @@
 
   function hash(t) { var h = 2166136261; for (var i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
   function keyOf(q) { return q.t + '|' + (q.d || ''); }
-  function sizeOf(t) { return t.length <= 14 ? 's' : t.length <= 30 ? 'm' : 'l'; }
+  /* 영어 화면에서는 시트가 번역해 준 영어(te)로 보여 줌 (없으면 원문) */
+  var EN_UI = window.MM_LANG === 'en';
+  function shown(q) { return EN_UI && q.te ? q.te : q.t; }
+  /* 문 크기: 글자 수 기준 (영어는 같은 뜻도 글자가 많아 기준을 넓게) */
+  function sizeOf(t) { var a = EN_UI ? 28 : 14, b = EN_UI ? 64 : 30; return t.length <= a ? 's' : t.length <= b ? 'm' : 'l'; }
   function has(list, t) { for (var i = 0; i < list.length; i++) if (list[i].t === t) return true; return false; }
   function myWaiting() { return mine.slice(0, 5).filter(function (q) { return !has(approved, q.t); }); }
 
@@ -468,15 +472,16 @@
   /* state: '' 공개된 질문, 'mine-wait' 내 질문(확인 중), 'mine-ok' 내 질문(공개됨) */
   function makeDoor(q, state) {
     var li = document.createElement('li'), h = hash(q.t);
-    li.className = 'qdoor qd-' + SHAPES[h % SHAPES.length] + ' qd-' + sizeOf(q.t) + (state ? ' is-' + state : '');
+    var text = shown(q);
+    li.className = 'qdoor qd-' + SHAPES[h % SHAPES.length] + ' qd-' + sizeOf(text) + (state ? ' is-' + state : '');
     li.style.setProperty('--c', HEX.test(q.c) ? q.c : '#9C82EA');
     li.style.setProperty('--tilt', ((h >>> 3) % 31 / 10 - 1.5).toFixed(1) + 'deg');
     li.style.setProperty('--bob', (5 + (h >>> 7) % 40 / 10).toFixed(1) + 's');
     li.style.setProperty('--bobDelay', (-((h >>> 11) % 60) / 10).toFixed(1) + 's');
     li.innerHTML =
-      '<button type="button" class="qdoor-body" aria-label="' + esc(T('wall.doorAria', { t: q.t }) + (state ? T(state === 'mine-ok' ? 'wall.mineOkAria' : 'wall.mineWaitAria') : '')) + '">' +
+      '<button type="button" class="qdoor-body" aria-label="' + esc(T('wall.doorAria', { t: text }) + (state ? T(state === 'mine-ok' ? 'wall.mineOkAria' : 'wall.mineWaitAria') : '')) + '">' +
         '<span class="qdoor-win" aria-hidden="true">?</span>' +
-        '<span class="qdoor-plate">' + esc(q.t) + '</span>' +
+        '<span class="qdoor-plate"' + (text !== q.t ? ' lang="en" title="' + esc(q.t) + '"' : '') + '>' + esc(text) + '</span>' +
         '<span class="qdoor-knob" aria-hidden="true"></span>' +
       '</button>' +
       (state ? '<span class="qdoor-tag" aria-hidden="true">' + T(state === 'mine-ok' ? 'wall.mineOk' : 'wall.mineWait') + '</span>' : '');
@@ -543,7 +548,7 @@
   }
   function clean(items) {
     return (Array.isArray(items) ? items : []).filter(function (q) { return q && typeof q.t === 'string' && q.t; })
-      .map(function (q) { return { t: q.t.slice(0, MAX), c: q.c, d: q.d || '' }; });
+      .map(function (q) { return { t: q.t.slice(0, MAX), te: typeof q.te === 'string' ? q.te.slice(0, MAX * 3) : '', c: q.c, d: q.d || '' }; });
   }
   function loadQuestions() {
     var api = C.API_URL
@@ -635,7 +640,7 @@
   $('#allBtn').addEventListener('click', function () {
     var dot = function (c) { return HEX.test(c) ? c : '#9C82EA'; };
     var rows = myWaiting().map(function (q) { return '<li style="--c:' + dot(q.c) + '"><b>?</b><div>' + esc(q.t) + '<small>' + T('wall.mineWait') + '</small></div></li>'; })
-      .concat(approved.map(function (q) { return '<li style="--c:' + dot(q.c) + '"><b>?</b><div>' + esc(q.t) + (q.d ? '<small>' + esc(q.d) + '</small>' : '') + '</div></li>'; }));
+      .concat(approved.map(function (q) { return '<li style="--c:' + dot(q.c) + '"><b>?</b><div>' + esc(shown(q)) + (q.d ? '<small>' + esc(q.d) + '</small>' : '') + '</div></li>'; }));
     $('#allList').innerHTML = rows.length ? rows.join('') : '<li>' + T('list.empty') + '</li>';
     openModal($('#allModal'));
   });

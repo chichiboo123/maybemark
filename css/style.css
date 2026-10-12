@@ -69,6 +69,8 @@ img { max-width: 100%; height: auto; display: block; }
 a { color: inherit; }
 button { font-family: inherit; color: inherit; }
 :focus-visible { outline: 3px solid var(--logo); outline-offset: 3px; border-radius: 6px; }
+/* hidden 속성은 어떤 display 규칙보다 우선 (버튼·배지가 숨겨지지 않던 문제 방지) */
+[hidden] { display: none !important; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
 
@@ -479,13 +481,17 @@ body.is-rest *, body.is-rest *::before, body.is-rest *::after { animation-play-s
   animation: qBob var(--bob, 6s) ease-in-out var(--bobDelay, 0s) infinite alternate; }
 .qd-s { --w: 112px; --h: 164px; --fs: 15px; }
 .qd-l { --w: 198px; --h: 236px; --fs: 14px; }
+/* 영어 번역은 글자가 많아 큰 문을 조금 더 키우고 글씨는 약간 작게 */
+html[lang="en"] .qd-s { --w: 140px; --fs: 14px; }
+html[lang="en"] .qd-m { --w: 160px; --fs: 14px; }
+html[lang="en"] .qd-l { --w: 210px; --h: 256px; --fs: 13px; }
 /* 바닥 그림자: 문이 살짝 떠 있는 느낌 */
 .qdoor::after { content: ''; position: absolute; left: 10%; right: 10%; bottom: -16px; height: 12px; border-radius: 50%; background: radial-gradient(ellipse, rgba(0, 0, 0, .5), transparent 70%); animation: qShadow var(--bob, 6s) ease-in-out var(--bobDelay, 0s) infinite alternate; }
 @keyframes qBob { from { transform: translateY(0); } to { transform: translateY(-8px); } }
 @keyframes qShadow { from { scale: 1; opacity: .9; } to { scale: .82; opacity: .55; } }
 
 .qdoor-body {
-  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; width: 100%; height: calc(var(--h) * var(--k));
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; width: 100%; min-height: calc(var(--h) * var(--k)); /* 글이 길면 문이 더 커짐 */
   padding: calc(42px * var(--k)) calc(12px * var(--k)) calc(30px * var(--k)); border: 5px solid color-mix(in srgb, var(--c) 66%, #071251);
   background: linear-gradient(180deg, color-mix(in srgb, var(--c) 78%, #fff) 0%, var(--c) 100%);
   border-radius: 10px; cursor: pointer; font: inherit; color: var(--ink); rotate: var(--tilt, 0deg);

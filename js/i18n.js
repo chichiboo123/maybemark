@@ -53,10 +53,10 @@
   /* 영어 — 화면 글자(data-i18n 키) + 스크립트 글자 */
   var EN = {
     'meta.title': 'MAYBEMARK · The Maybemark Explorers',
-    'meta.desc': 'An original musical by MuTalk, Dongducheon Songnae Elementary School — between the question mark and the period, a story of a world no one knew.',
+    'meta.desc': 'An original musical by Mutalk&Mutok, Dongducheon Songnae Elementary School — between the question mark and the period, a story of a world no one knew.',
 
     'intro.aria': 'Enter Question Mark World',
-    'intro.kicker': 'An original musical by MuTalk, Dongducheon Songnae Elementary',
+    'intro.kicker': 'An original musical by Mutalk&Mutok, Dongducheon Songnae Elementary',
     'intro.doorAria': 'Open the door and enter Question Mark World',
     'intro.quote': '"I have so many questions, but there never seem to be any answers."',
     'intro.open': 'Shall we open the door?',
@@ -75,7 +75,7 @@
     'crown.badge': 'You earned the Period Crown',
     'menu.aria': 'Open menu',
 
-    'hero.sub': '2026 MuTalk Original Musical · Dongducheon Songnae Elementary',
+    'hero.sub': '2026 Mutalk&Mutok Original Musical<br />Dongducheon Songnae Elementary School',
     'hero.logoAlt': 'The Maybemark Explorers — between the question mark and the period, a story of a world no one knew',
     'hero.tagline': '<b>The Maybemark Explorers</b><span>Between the question mark and the period, a story of a world no one knew</span>',
     'hero.enter': 'Open the door',
@@ -84,7 +84,7 @@
 
     'pro.title': 'The Day the Door to Question Mark World Opened',
     'pro.quote': '"I have so many questions,<br />but there never seem to be any answers."',
-    'pro.p1': 'One day, a student in MuTalk tossed out that one remark. It left a small question mark behind in our club room.',
+    'pro.p1': 'One day, a student in Mutalk&Mutok tossed out that one remark. It left a small question mark behind in our club room.',
     'pro.p2': 'What if questions were alive? What if each of them had a name, a personality and a dream of its own?',
     'pro.p3': 'Together, we opened the door of imagination: a world where \'Why\' and \'Really\', \'How\' and \'What If\' live — and the story of a mysterious being called \'Dunno\'.',
     'pro.p4': 'The stories of eight children became songs, and the songs met movement to become a musical.',
@@ -193,24 +193,24 @@
     'lang.aria': '한국어로 보기'
   };
 
-  /* 인물·넘버·안내도·무대 기록 영어판 (js/data.js와 같은 순서). 사람 이름은 한글 그대로 둡니다. */
+  /* 인물·넘버·안내도·무대 기록 영어판 (js/data.js와 같은 순서). 사람 이름은 영어 표기로 */
   var DATA_EN = {
     cast: [
-      { role: 'Why', line: 'Because I\'m \'Why\'!',
+      { role: 'Why', actor: 'Park Cho-eun', line: 'Because I\'m \'Why\'!',
         desc: 'A chatty, curious question who can\'t hold back when something puzzles them and has to chase the answer to the very end.' },
-      { role: 'Really', line: 'Really? Are you sure? Did you check it yourself?',
+      { role: 'Really', actor: 'Shin Hae-won', line: 'Really? Are you sure? Did you check it yourself?',
         desc: 'A careful, anxious question who never believes anything easily and only feels safe after double-checking the facts.' },
-      { role: 'How', line: 'How? Maybe if we try it like this?',
+      { role: 'How', actor: 'Lee Seung-hye', line: 'How? Maybe if we try it like this?',
         desc: 'A can-do question who finds the way by doing rather than worrying.' },
-      { role: 'What If', line: 'What if? Then would we all be floating around?',
+      { role: 'What If', actor: 'Ju Eun-bin', line: 'What if? Then would we all be floating around?',
         desc: 'A free, floaty question who dreams up wild ideas and brand-new possibilities.' },
-      { role: 'Dunno', line: 'Yeah. Maybe it\'ll open tomorrow… Dunno.',
+      { role: 'Dunno', /* 윤지연: 영어 표기 확인 전이라 한글 그대로 */ line: 'Yeah. Maybe it\'ll open tomorrow… Dunno.',
         desc: 'A slow, unhurried being who shows that it\'s okay to stay with not knowing and rest for a while.' },
-      { role: 'Baby Question', extra: '& others', line: 'Can I join the expedition too?',
+      { role: 'Baby Question', actor: 'Lee Ha-eun', extra: '& others', line: 'Can I join the expedition too?',
         desc: 'The youngest, newly born question — pure, brave and determined to open a door all by themselves.' },
-      { role: 'Question 1', extra: '& others', line: 'Found it!',
+      { role: 'Question 1', actor: 'Bok Ji-gyeom', extra: '& others', line: 'Found it!',
         desc: 'The countless questions all over Question Mark World, each opening its own door and traveling in search of its own answer.' },
-      { role: 'Question 2', extra: '& others', line: 'Want to come with us?',
+      { role: 'Question 2', actor: 'Kang Da-hee', extra: '& others', line: 'Want to come with us?',
         desc: 'The countless questions all over Question Mark World, each opening its own door and traveling in search of its own answer.' }
     ],
     numbers: [
@@ -249,16 +249,16 @@
       { day: 'Tue', place: 'Woori Financial Art Hall',
         title: 'Gala Performance, Finals of the 2026 National School Arts Education Festival' },
       { day: 'Wed', place: 'Multipurpose Room, Dongducheon Songnae Elementary School',
-        title: '2026 MuTalk Showcase' }
+        title: '2026 Mutalk&Mutok Showcase' }
     ],
     credits: [
-      ['Supervision', '원치수 · 김찬호'],
-      ['Book & Lyrics', '원치수'],
-      ['Direction', '김찬호'],
-      ['Music', '김아영'],
+      ['Supervision', 'Won Chi-su · Kim Chan-ho'],
+      ['Book & Lyrics', 'Won Chi-su'],
+      ['Direction', 'Kim Chan-ho'],
+      ['Music', 'Kim A-young'],
       ['Production', 'Dongducheon Songnae Elementary School']
     ],
-    thanks: 'Our heartfelt thanks to Principal 김유진 and Vice Principal 박성원 for warmly encouraging and supporting \'MuTalk\', the musical club of Dongducheon Songnae Elementary School.'
+    thanks: 'Our heartfelt thanks to Principal Kim Yu-jin and Vice Principal Park Seong-won for warmly encouraging and supporting \'Mutalk&Mutok\', the musical club of Dongducheon Songnae Elementary School.'
   };
 
   function fill(s, v) {
@@ -288,7 +288,8 @@
       var v = EN[el.getAttribute('data-i18n')];
       if (v == null) return;
       if (el instanceof SVGElement) el.textContent = v; else el.innerHTML = v;
-      if (el.hasAttribute('hidden') && v) el.removeAttribute('hidden');
+      /* 영어에서만 보이는 줄(data-i18n-show)은 숨김을 풂. 다른 숨김(예: 문 더 보기)은 그대로 */
+      if (el.hasAttribute('data-i18n-show') && v) el.hidden = false;
     });
     Array.prototype.forEach.call(document.querySelectorAll('[data-i18n-attr]'), function (el) {
       el.getAttribute('data-i18n-attr').split(';').forEach(function (pair) {
