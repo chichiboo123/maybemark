@@ -65,6 +65,7 @@
     'sound.off': 'Sound off',
     'ding': '(Ding-dong) A new question has been born.',
 
+    'brand': 'MAYBEMARK',
     'brand.aria': 'MAYBEMARK, back to top',
     'nav.aria': 'Jump to a section',
     'nav.world': 'World',
