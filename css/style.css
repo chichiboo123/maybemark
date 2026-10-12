@@ -69,6 +69,8 @@ img { max-width: 100%; height: auto; display: block; }
 a { color: inherit; }
 button { font-family: inherit; color: inherit; }
 :focus-visible { outline: 3px solid var(--logo); outline-offset: 3px; border-radius: 6px; }
+/* hidden 속성은 어떤 display 규칙보다 우선 (버튼·배지가 숨겨지지 않던 문제 방지) */
+[hidden] { display: none !important; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
 
@@ -175,6 +177,13 @@ button { font-family: inherit; color: inherit; }
 .ding-toast { min-height: 1.6em; font-size: 15px; color: var(--logo); font-weight: 700; }
 
 /* 소리 토글 */
+/* 언어 전환 */
+.lang-toggle { display: inline-flex; align-items: center; gap: 4px; border: 0; background: rgba(255, 255, 255, .12); color: #fff; border-radius: 999px; padding: 8px 12px; cursor: pointer; font-size: 13px; font-weight: 800; }
+.lang-toggle:hover { background: rgba(255, 255, 255, .22); }
+.lang-toggle .material-icons-outlined { font-size: 18px; }
+.intro-lang { position: absolute !important; left: 14px; top: 14px; }
+/* 영어로 바꿔 끼우기 전 한국어가 잠깐 보이지 않게 */
+.i18n-wait body { opacity: 0; }
 .sound-toggle { display: inline-flex; align-items: center; gap: 6px; border: 0; background: rgba(255, 255, 255, .12); color: #fff; border-radius: 999px; padding: 8px 12px; cursor: pointer; font-size: 14px; }
 .sound-toggle[aria-pressed="true"] { background: var(--logo); color: var(--night); }
 
@@ -227,10 +236,16 @@ button { font-family: inherit; color: inherit; }
 @keyframes drift { to { transform: scale(1.1) translateY(-1.5%); } }
 .hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(7, 18, 81, .82) 0%, rgba(7, 18, 81, .35) 38%, rgba(7, 18, 81, 0) 60%, rgba(7, 18, 81, .45) 100%); }
 .hero-inner { position: relative; z-index: 2; width: 100%; max-width: var(--wrap); margin: 0 auto; padding: calc(var(--header-h) + 24px) 20px 40px; text-align: center; }
-.hero-eng { font-size: clamp(22px, 6vw, 36px); font-weight: 900; letter-spacing: .32em; color: var(--logo); text-shadow: 0 3px 0 var(--night); margin-right: -.32em; }
-.hero-logo img { width: min(560px, 92vw); margin: 4px auto 0; filter: drop-shadow(0 8px 18px rgba(0, 0, 0, .35)); }
-.hero-sub { margin-top: 8px; font-size: 15px; font-weight: 600; text-shadow: 0 1px 6px rgba(0, 0, 0, .5); }
+/* 소제목·로고·(영어)부제를 로고 폭 기준으로 가운데 정렬 */
+.hero-title { display: flex; flex-direction: column; align-items: center; }
+.hero-logo img { width: min(560px, 92vw); margin: 0 auto; filter: drop-shadow(0 8px 18px rgba(0, 0, 0, .35)); }
+.hero-sub { margin-bottom: 6px; max-width: min(560px, 92vw); font-size: 15px; font-weight: 700; letter-spacing: .02em; text-align: center; text-shadow: 0 1px 6px rgba(0, 0, 0, .5); }
+.hero-tagline { max-width: min(500px, 88vw); margin-top: 2px; font-size: 14px; line-height: 1.55; text-align: center; color: rgba(255, 255, 255, .88); text-shadow: 0 1px 6px rgba(0, 0, 0, .5); }
+.hero-tagline span { display: block; }
+@media (max-width: 767px) { .hero-tagline span { display: none; } }
+.hero-tagline b { display: block; font-size: 18px; font-weight: 900; color: var(--logo); text-shadow: 0 2px 0 var(--night); }
 .hero-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
+@media (max-width: 479px) { .hero-btns { gap: 8px; } .hero-btns .btn-pill { padding: 10px 18px; font-size: 15px; } }
 .scroll-cue { position: absolute; z-index: 2; left: 50%; bottom: 18px; transform: translateX(-50%); color: #fff; animation: cue 1.8s ease-in-out infinite; }
 .scroll-cue .material-icons-outlined { font-size: 36px; }
 @keyframes cue { 50% { transform: translate(-50%, 6px); } }
@@ -466,13 +481,17 @@ body.is-rest *, body.is-rest *::before, body.is-rest *::after { animation-play-s
   animation: qBob var(--bob, 6s) ease-in-out var(--bobDelay, 0s) infinite alternate; }
 .qd-s { --w: 112px; --h: 164px; --fs: 15px; }
 .qd-l { --w: 198px; --h: 236px; --fs: 14px; }
+/* 영어 번역은 글자가 많아 큰 문을 조금 더 키우고 글씨는 약간 작게 */
+html[lang="en"] .qd-s { --w: 140px; --fs: 14px; }
+html[lang="en"] .qd-m { --w: 160px; --fs: 14px; }
+html[lang="en"] .qd-l { --w: 210px; --h: 256px; --fs: 13px; }
 /* 바닥 그림자: 문이 살짝 떠 있는 느낌 */
 .qdoor::after { content: ''; position: absolute; left: 10%; right: 10%; bottom: -16px; height: 12px; border-radius: 50%; background: radial-gradient(ellipse, rgba(0, 0, 0, .5), transparent 70%); animation: qShadow var(--bob, 6s) ease-in-out var(--bobDelay, 0s) infinite alternate; }
 @keyframes qBob { from { transform: translateY(0); } to { transform: translateY(-8px); } }
 @keyframes qShadow { from { scale: 1; opacity: .9; } to { scale: .82; opacity: .55; } }
 
 .qdoor-body {
-  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; width: 100%; height: calc(var(--h) * var(--k));
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; width: 100%; min-height: calc(var(--h) * var(--k)); /* 글이 길면 문이 더 커짐 */
   padding: calc(42px * var(--k)) calc(12px * var(--k)) calc(30px * var(--k)); border: 5px solid color-mix(in srgb, var(--c) 66%, #071251);
   background: linear-gradient(180deg, color-mix(in srgb, var(--c) 78%, #fff) 0%, var(--c) 100%);
   border-radius: 10px; cursor: pointer; font: inherit; color: var(--ink); rotate: var(--tilt, 0deg);
@@ -646,8 +665,9 @@ body.is-rest *, body.is-rest *::before, body.is-rest *::after { animation-play-s
     -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 28%); mask-image: linear-gradient(90deg, transparent 0%, #000 28%); }
   .hero::after { background: linear-gradient(0deg, rgba(7, 18, 81, .35) 0%, transparent 25%); }
   .hero-inner { text-align: left; padding-top: var(--header-h); }
-  .hero-eng { margin-right: 0; }
-  .hero-logo img { width: 470px; margin: 4px 0 0 -14px; }
+  .hero-title { display: inline-flex; }
+  .hero-logo img { width: 470px; }
+  .hero-sub, .hero-tagline { max-width: 470px; }
   .hero-btns { justify-content: flex-start; }
 }
 @media (prefers-reduced-motion: reduce) {

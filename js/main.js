@@ -9,6 +9,8 @@
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  /* 글자 번역 (js/i18n.js). 없으면 키를 그대로 */
+  var T = window.MM_T || function (k) { return k; };
 
   /* ---------- 브라우저 저장(없어도 동작) ---------- */
   var store = {
@@ -43,9 +45,9 @@
   function paintSound() {
     $$('[data-sound-toggle]').forEach(function (b) {
       b.setAttribute('aria-pressed', soundOn ? 'true' : 'false');
-      b.setAttribute('aria-label', soundOn ? '소리 끄기' : '소리 켜기');
+      b.setAttribute('aria-label', T(soundOn ? 'sound.off' : 'sound.on'));
       $('.material-icons-outlined', b).textContent = soundOn ? 'volume_up' : 'volume_off';
-      var l = $('.sound-label', b); if (l) l.textContent = soundOn ? '소리 끄기' : '소리 켜기';
+      var l = $('.sound-label', b); if (l) l.textContent = T(soundOn ? 'sound.off' : 'sound.on');
     });
   }
   $$('[data-sound-toggle]').forEach(function (b) {
@@ -65,7 +67,7 @@
     if (!animated || reduceMotion) { finish(); return; }
     intro.classList.add('is-opening');
     ding();
-    $('#introDing').textContent = '(딩동) 새로운 질문이 탄생했습니다.';
+    $('#introDing').textContent = T('ding');
     setTimeout(finish, 1700);
     function finish() {
       intro.classList.add('is-gone');
@@ -245,9 +247,9 @@
     li.className = 'door-card reveal' + (opened[c.id] ? ' is-open' : '');
     li.style.setProperty('--c', c.color); li.style.setProperty('--bg', c.bg); li.style.setProperty('--i', i % 4);
     li.innerHTML =
-      '<button class="door-btn" type="button" aria-expanded="' + (opened[c.id] ? 'true' : 'false') + '" aria-label="' + esc(c.role) + '의 문 열기">' +
+      '<button class="door-btn" type="button" aria-expanded="' + (opened[c.id] ? 'true' : 'false') + '" aria-label="' + esc(T('door.open', { role: c.role })) + '">' +
         '<div class="door-frame">' +
-          '<img src="assets/cast/' + c.id + '.webp" alt="' + esc(c.role) + ' 역 ' + esc(c.actor) + ' 일러스트" loading="lazy" />' +
+          '<img src="assets/cast/' + c.id + '.webp" alt="' + esc(T('door.alt', { role: c.role, actor: c.actor })) + '" loading="lazy" />' +
           '<span class="door-leaf2" aria-hidden="true"><b>?</b><i></i></span>' +
         '</div>' +
       '</button>' +
@@ -314,7 +316,7 @@
   function paintPlay() {
     var playing = !audio.paused;
     $('#playIcon').textContent = playing ? 'pause' : 'play_arrow';
-    $('#playBtn').setAttribute('aria-label', playing ? '일시정지' : '재생');
+    $('#playBtn').setAttribute('aria-label', T(playing ? 'pause' : 'play'));
     $$('.num-btn', list).forEach(function (b, j) {
       $('.num-ico .material-icons-outlined', b).textContent = (j === cur && playing) ? 'pause' : 'play_arrow';
     });
@@ -387,7 +389,7 @@
     var mm = Number(s.date.slice(5, 7)), dd = Number(s.date.slice(8, 10));
     return '<li class="stage reveal' + (past ? ' is-past' : '') + '" style="--i:' + i + '">' +
       '<div class="stage-date"><b>' + mm + '.' + dd + '</b><span>' + s.day + ' ' + s.time + '</span></div>' +
-      '<div><span class="stage-tag">' + (isToday ? '오늘의 무대' : past ? '지나온 무대' : '다가올 무대') + '</span>' +
+      '<div><span class="stage-tag">' + T(isToday ? 'stage.today' : past ? 'stage.past' : 'stage.next') + '</span>' +
       '<p class="stage-title">' + esc(s.title) + '</p><p class="stage-meta">' + esc(s.place) + '</p></div></li>';
   }).join('');
   $('#creditList').innerHTML = D.credits.map(function (c) { return '<dt>' + esc(c[0]) + '</dt><dd>' + esc(c[1]) + '</dd>'; }).join('');
@@ -404,7 +406,7 @@
   askText.setAttribute('maxlength', MAX);
 
   $('#colorPick').innerHTML = D.questionColors.map(function (c, i) {
-    return '<button type="button" role="radio" aria-checked="' + (i === 0) + '" aria-label="' + (i + 1) + '번 색" style="--c:' + c + '" data-c="' + c + '"></button>';
+    return '<button type="button" role="radio" aria-checked="' + (i === 0) + '" aria-label="' + T('ask.colorN', { n: i + 1 }) + '" style="--c:' + c + '" data-c="' + c + '"></button>';
   }).join('');
   $$('#colorPick button').forEach(function (b) {
     b.addEventListener('click', function () {
@@ -415,11 +417,11 @@
   askText.addEventListener('input', function () { $('#askCount').textContent = askText.value.length + ' / ' + MAX; });
 
   function checkText(t) {
-    if (t.length < 2) return '질문을 두 글자 이상 적어 주세요.';
-    if (t.length > MAX) return MAX + '자 안으로 적어 주세요.';
+    if (t.length < 2) return T('ask.tooShort');
+    if (t.length > MAX) return T('ask.tooLong', { max: MAX });
     var low = t.toLowerCase().replace(/\s/g, '');
-    for (var i = 0; i < BANNED.length; i++) if (low.indexOf(BANNED[i]) > -1) return '고운 말로 다시 적어 줄래요?';
-    if (PHONE.test(t) || MAIL.test(t)) return '전화번호나 이메일은 적지 말아 주세요.';
+    for (var i = 0; i < BANNED.length; i++) if (low.indexOf(BANNED[i]) > -1) return T('ask.bad');
+    if (PHONE.test(t) || MAIL.test(t)) return T('ask.private');
     return '';
   }
   function say(m, err) { askMsg.textContent = m; askMsg.classList.toggle('is-error', !!err); }
@@ -444,7 +446,11 @@
 
   function hash(t) { var h = 2166136261; for (var i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
   function keyOf(q) { return q.t + '|' + (q.d || ''); }
-  function sizeOf(t) { return t.length <= 14 ? 's' : t.length <= 30 ? 'm' : 'l'; }
+  /* 영어 화면에서는 시트가 번역해 준 영어(te)로 보여 줌 (없으면 원문) */
+  var EN_UI = window.MM_LANG === 'en';
+  function shown(q) { return EN_UI && q.te ? q.te : q.t; }
+  /* 문 크기: 글자 수 기준 (영어는 같은 뜻도 글자가 많아 기준을 넓게) */
+  function sizeOf(t) { var a = EN_UI ? 28 : 14, b = EN_UI ? 64 : 30; return t.length <= a ? 's' : t.length <= b ? 'm' : 'l'; }
   function has(list, t) { for (var i = 0; i < list.length; i++) if (list[i].t === t) return true; return false; }
   function myWaiting() { return mine.slice(0, 5).filter(function (q) { return !has(approved, q.t); }); }
 
@@ -466,18 +472,19 @@
   /* state: '' 공개된 질문, 'mine-wait' 내 질문(확인 중), 'mine-ok' 내 질문(공개됨) */
   function makeDoor(q, state) {
     var li = document.createElement('li'), h = hash(q.t);
-    li.className = 'qdoor qd-' + SHAPES[h % SHAPES.length] + ' qd-' + sizeOf(q.t) + (state ? ' is-' + state : '');
+    var text = shown(q);
+    li.className = 'qdoor qd-' + SHAPES[h % SHAPES.length] + ' qd-' + sizeOf(text) + (state ? ' is-' + state : '');
     li.style.setProperty('--c', HEX.test(q.c) ? q.c : '#9C82EA');
     li.style.setProperty('--tilt', ((h >>> 3) % 31 / 10 - 1.5).toFixed(1) + 'deg');
     li.style.setProperty('--bob', (5 + (h >>> 7) % 40 / 10).toFixed(1) + 's');
     li.style.setProperty('--bobDelay', (-((h >>> 11) % 60) / 10).toFixed(1) + 's');
     li.innerHTML =
-      '<button type="button" class="qdoor-body" aria-label="질문의 문: ' + esc(q.t) + (state ? (state === 'mine-ok' ? ' (내 질문, 공개됨)' : ' (내 질문, 확인 중)') : '') + '">' +
+      '<button type="button" class="qdoor-body" aria-label="' + esc(T('wall.doorAria', { t: text }) + (state ? T(state === 'mine-ok' ? 'wall.mineOkAria' : 'wall.mineWaitAria') : '')) + '">' +
         '<span class="qdoor-win" aria-hidden="true">?</span>' +
-        '<span class="qdoor-plate">' + esc(q.t) + '</span>' +
+        '<span class="qdoor-plate"' + (text !== q.t ? ' lang="en" title="' + esc(q.t) + '"' : '') + '>' + esc(text) + '</span>' +
         '<span class="qdoor-knob" aria-hidden="true"></span>' +
       '</button>' +
-      (state ? '<span class="qdoor-tag" aria-hidden="true">' + (state === 'mine-ok' ? '내 질문 · 공개됨' : '내 질문 · 확인 중') + '</span>' : '');
+      (state ? '<span class="qdoor-tag" aria-hidden="true">' + T(state === 'mine-ok' ? 'wall.mineOk' : 'wall.mineWait') + '</span>' : '');
     $('.qdoor-body', li).addEventListener('click', function () {
       var b = this; b.classList.remove('is-knock'); void b.offsetWidth; b.classList.add('is-knock'); knock();
     });
@@ -500,7 +507,7 @@
     Object.keys(doorEls).forEach(function (k) { if (!keep[k]) delete doorEls[k]; });
 
     if (!want.length) {
-      wall.innerHTML = '<li class="qwall-empty"><span class="qdoor-outline" aria-hidden="true">?</span>아직 열린 문이 없어요.<br>첫 번째 질문의 문을 만들어 주세요!</li>';
+      wall.innerHTML = '<li class="qwall-empty"><span class="qdoor-outline" aria-hidden="true">?</span>' + T('wall.empty') + '</li>';
     } else {
       var empty = $('.qwall-empty', wall); if (empty) empty.remove();
       var cur = wall.firstChild;
@@ -514,14 +521,14 @@
     while (pendingDoors.children.length > nGhost) pendingDoors.removeChild(pendingDoors.lastChild);
     wallPending.hidden = !pendingOthers;
 
-    var info = ['열린 문 ' + approved.length + '개'];
-    if (waiting.length) info.push('내 질문 ' + waiting.length + '개 확인 중');
-    if (pendingOthers) info.push('다른 질문 ' + pendingOthers + '개 확인 중');
+    var info = [T('wall.open', { n: approved.length })];
+    if (waiting.length) info.push(T('wall.myWait', { n: waiting.length }));
+    if (pendingOthers) info.push(T('wall.otherWait', { n: pendingOthers }));
     wallInfo.textContent = info.join(' · ');
     wallLive.hidden = !isLive;
     var more = approved.length - wallLimit;
     wallMore.hidden = more <= 0;
-    if (more > 0) wallMore.textContent = '문 더 보기 (+' + Math.min(more, WALL_STEP) + ')';
+    if (more > 0) wallMore.textContent = T('wall.more', { n: Math.min(more, WALL_STEP) });
     $('#allCount').textContent = approved.length ? '(' + approved.length + ')' : '';
   }
   wallMore.addEventListener('click', function () { wallLimit += WALL_STEP; renderWall(); });
@@ -541,7 +548,7 @@
   }
   function clean(items) {
     return (Array.isArray(items) ? items : []).filter(function (q) { return q && typeof q.t === 'string' && q.t; })
-      .map(function (q) { return { t: q.t.slice(0, MAX), c: q.c, d: q.d || '' }; });
+      .map(function (q) { return { t: q.t.slice(0, MAX), te: typeof q.te === 'string' ? q.te.slice(0, MAX * 3) : '', c: q.c, d: q.d || '' }; });
   }
   function loadQuestions() {
     var api = C.API_URL
@@ -570,8 +577,8 @@
       pendingOthers = Math.max(0, Math.min(30, res.pending - myWaiting().length));
       renderWall(fresh);
       if (first) enterWall();
-      if (mineOpened) { toast('딩동! 내 질문의 문이 모두에게 열렸어요.'); ding(); }
-      else if (arrived) { toast('딩동! 새로운 질문의 문 ' + arrived + '개가 열렸어요.'); ding(); }
+      if (mineOpened) { toast(T('wall.toastMine')); ding(); }
+      else if (arrived) { toast(T('wall.toastNew', { n: arrived })); ding(); }
     }).catch(function () {}).then(function () { busy = false; });
   }
   /* 처음 보일 때: 문들이 차례로 떠오름 */
@@ -600,7 +607,7 @@
     var t = askText.value.replace(/\s+/g, ' ').trim();
     var bad = checkText(t); if (bad) { say(bad, true); return; }
     var last = Number(store.get('mm_last') || 0), wait = (C.COOLDOWN_SEC || 60) * 1000 - (Date.now() - last);
-    if (wait > 0) { say(Math.ceil(wait / 1000) + '초 뒤에 다시 띄울 수 있어요.', true); return; }
+    if (wait > 0) { say(T('ask.wait', { s: Math.ceil(wait / 1000) }), true); return; }
     store.set('mm_last', String(Date.now()));
 
     var q = { t: t, c: color, d: todayKey, mine: true };
@@ -612,7 +619,7 @@
     if (mineEl) setTimeout(function () { mineEl.el.scrollIntoView({ block: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' }); }, 150);
     ding();
     askText.value = ''; $('#askCount').textContent = '0 / ' + MAX;
-    say('딩동! 내 질문의 문이 생겼어요.');
+    say(T('ask.made'));
 
     if (C.API_URL) {
       $('#askBtn').disabled = true;
@@ -621,19 +628,20 @@
         headers: { 'Content-Type': 'text/plain;charset=utf-8' }, /* 사전 확인(CORS) 없이 보내기 */
         body: JSON.stringify({ text: t, color: color, website: '' })
       }).then(function (r) { return r.json(); }).then(function (res) {
-        if (res && res.ok) say('딩동! 질문이 도착했어요. 선생님이 확인하면 모두에게 문이 열려요.');
-        else say((res && res.error) || '잠시 뒤 다시 띄워 주세요.', true);
+        if (res && res.ok) say(T('ask.sent'));
+        /* 서버 안내는 한국어라서, 영어 화면에선 공통 안내로 */
+        else say((window.MM_LANG !== 'en' && res && res.error) || T('ask.retry'), true);
       }).catch(function () {
-        say('지금은 질문이 저장되지 않았어요. 내 화면에만 문이 있어요.', true);
+        say(T('ask.offline'), true);
       }).then(function () { $('#askBtn').disabled = false; });
     }
   });
 
   $('#allBtn').addEventListener('click', function () {
     var dot = function (c) { return HEX.test(c) ? c : '#9C82EA'; };
-    var rows = myWaiting().map(function (q) { return '<li style="--c:' + dot(q.c) + '"><b>?</b><div>' + esc(q.t) + '<small>내 질문 · 확인 중</small></div></li>'; })
-      .concat(approved.map(function (q) { return '<li style="--c:' + dot(q.c) + '"><b>?</b><div>' + esc(q.t) + (q.d ? '<small>' + esc(q.d) + '</small>' : '') + '</div></li>'; }));
-    $('#allList').innerHTML = rows.length ? rows.join('') : '<li>아직 공개된 질문이 없어요. 첫 질문을 띄워 주세요!</li>';
+    var rows = myWaiting().map(function (q) { return '<li style="--c:' + dot(q.c) + '"><b>?</b><div>' + esc(q.t) + '<small>' + T('wall.mineWait') + '</small></div></li>'; })
+      .concat(approved.map(function (q) { return '<li style="--c:' + dot(q.c) + '"><b>?</b><div>' + esc(shown(q)) + (q.d ? '<small>' + esc(q.d) + '</small>' : '') + '</div></li>'; }));
+    $('#allList').innerHTML = rows.length ? rows.join('') : '<li>' + T('list.empty') + '</li>';
     openModal($('#allModal'));
   });
 
@@ -644,7 +652,7 @@
   if (Date.now() >= Date.parse(D.babyDoorOpensAt)) {
     $('#babyDoor').classList.add('is-open');
     $('.baby-door-frame .material-icons-outlined').textContent = 'lock_open';
-    $('#babyText').textContent = '작품발표회가 끝나고 문이 열렸어요. 커튼콜 기록이 곧 이 문 너머에 올라와요.';
+    $('#babyText').textContent = T('baby.opened');
   }
 
   /* 모달 */
