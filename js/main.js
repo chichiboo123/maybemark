@@ -123,7 +123,7 @@
   var progressQ = $('#progressQ'), progressPath = $('.progress-path');
   var lightIds = { prologue: 1, world: 1, cast: 1, numbers: 1, stop: 1, stages: 1 };
   /* 메뉴에 없는 구역은 가장 가까운 메뉴로 묶음 */
-  var navOf = { world: 'world', story: 'world', cast: 'cast', numbers: 'numbers', stop: 'numbers', stages: 'stages', ask: 'ask', epilogue: 'ask' };
+  var navOf = { world: 'world', story: 'world', cast: 'cast', numbers: 'numbers', stop: 'numbers', stages: 'stages', ask: 'ask', epilogue: 'review' };
   var navLinks = $$('a', nav), curNav = null;
   function paintNav(id) {
     var key = navOf[id] || null;

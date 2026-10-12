@@ -72,6 +72,7 @@
     'nav.numbers': 'Songs',
     'nav.stages': 'Performances',
     'nav.ask': 'My Question',
+    'nav.review': 'Reviews',
     'crown.badge': 'You earned the Period Crown',
     'menu.aria': 'Open menu',
 
@@ -183,6 +184,10 @@
     'baby.title': 'The Baby Question\'s Door',
     'baby.text': 'It hasn\'t opened yet. Maybe it\'ll open tomorrow… Dunno.',
     'baby.opened': 'The door opened after the showcase. Curtain-call memories will appear behind this door soon.',
+    'review.title': 'Share your thoughts on the show',
+    'review.desc': 'Tell us how you felt, the scene you remember most, or a cheer for the cast on our Padlet board.',
+    'review.btn': 'Write a review',
+    'review.note': 'Padlet opens in a new tab. A nickname is fine instead of your name.',
     'epi.end': 'The game of tag between questions and answers isn\'t over yet.<br />There\'s still so much to wonder about!',
 
     'crown.title': 'The Period Crown is yours!',
