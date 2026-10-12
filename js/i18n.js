@@ -58,7 +58,7 @@
     'intro.aria': 'Enter Question Mark World',
     'intro.kicker': 'An original musical by Mutalk&Mutok, Dongducheon Songnae Elementary',
     'intro.doorAria': 'Open the door and enter Question Mark World',
-    'intro.quote': '"I have so many questions, but there never seem to be any answers."',
+    'intro.quote': 'Between the question mark and the period, a story of a world no one knew',
     'intro.open': 'Shall we open the door?',
     'intro.skip': 'Skip',
     'sound.on': 'Sound on',
@@ -78,7 +78,7 @@
     'hero.sub': '2026 Mutalk&Mutok Original Musical<br />Dongducheon Songnae Elementary School',
     'hero.logoAlt': 'The Maybemark Explorers — between the question mark and the period, a story of a world no one knew',
     'hero.tagline': '<b>The Maybemark Explorers</b><span>Between the question mark and the period, a story of a world no one knew</span>',
-    'hero.enter': 'Open the door',
+    'hero.enter': 'Enter Question Mark World',
     'hero.listen': 'Hear the songs',
     'hero.down': 'Scroll down',
 
