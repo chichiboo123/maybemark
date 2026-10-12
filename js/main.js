@@ -134,67 +134,53 @@
       if (on) a.setAttribute('aria-current', 'true'); else a.removeAttribute('aria-current');
     });
   }
-  var ticking = false, lastY = window.scrollY, scrollDir = 1;
+  /* 스크롤 중에는 가벼운 일만: 숫자 몇 개 계산 + transform 한 번 (레이아웃을 다시 재지 않음) */
+  var ticking = false, lastY = window.scrollY, scrollDir = 1, solid = null, pathH = 0, maxY = 1;
+  function measure() {
+    pathH = progressPath.clientHeight;
+    maxY = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+  }
   function onScroll() {
     if (ticking) return; ticking = true;
     requestAnimationFrame(function () {
       ticking = false;
-      var y = window.scrollY, max = document.documentElement.scrollHeight - window.innerHeight;
+      var y = window.scrollY;
       if (y !== lastY) { scrollDir = y > lastY ? 1 : -1; lastY = y; }
-      paintDepth(y);
-      topbar.classList.toggle('is-solid', y > 40);
-      progressQ.style.top = (max > 0 ? Math.min(1, y / max) * 100 : 0) + '%';
-      var el = document.elementFromPoint(window.innerWidth - 30, window.innerHeight / 2);
-      var sec = el && el.closest ? el.closest('section') : null;
-      progressPath.classList.toggle('on-light', !!(sec && lightIds[sec.id]));
-      paintNav(sec ? sec.id : null);
+      var s = y > 40; if (s !== solid) { solid = s; topbar.classList.toggle('is-solid', s); }
+      progressQ.style.transform = 'translate(-50%, calc(-50% + ' + (Math.min(1, y / maxY) * pathH).toFixed(1) + 'px))';
     });
   }
   window.addEventListener('scroll', onScroll, { passive: true });
-  window.addEventListener('resize', onScroll);
+  window.addEventListener('resize', function () { measure(); onScroll(); });
+  window.addEventListener('load', function () { measure(); onScroll(); });
+  measure();
+
+  /* 화면 가운데에 걸친 구역 → 메뉴 현재 위치, 진행줄 색 (스크롤마다 재지 않고 관찰자로) */
+  var pages = $$('.hero, .sec, .epilogue');
+  var secIO = new IntersectionObserver(function (es) {
+    es.forEach(function (e) {
+      if (!e.isIntersecting) return;
+      progressPath.classList.toggle('on-light', !!lightIds[e.target.id]);
+      paintNav(e.target.id);
+    });
+  }, { rootMargin: '-50% 0px -50% 0px' });
+  pages.forEach(function (s) { secIO.observe(s); });
 
   /* =========================================================
-     패럴랙스: 장식이 글보다 조금 느리게 움직여 깊이감을 줌
-     (각 구역에 --p: 화면 가운데 기준 -1 ~ 1, 히어로에 --out: 0 ~ 1)
+     자석 (부드럽게)
+     스크롤이 완전히 멈춘 뒤(손가락을 떼고 관성까지 끝난 뒤), 가던 방향
+     바로 앞에 페이지 경계가 있을 때만 브라우저 기본 부드러운 스크롤로
+     살며시 맞춤. 뒤로 끌어당기지 않고, 휠·키·손가락이 닿으면 즉시 양보.
+     (PC는 화면의 16%·최대 150px, 휴대폰은 12%·최대 100px 안쪽만)
      ========================================================= */
-  var hero = $('#hero'), depthSecs = $$('[data-depth]');
-  function paintDepth(y) {
-    if (reduceMotion) return;
-    var vh = window.innerHeight;
-    hero.style.setProperty('--out', Math.min(1, Math.max(0, y / vh)).toFixed(3));
-    depthSecs.forEach(function (s) {
-      var r = s.getBoundingClientRect();
-      if (r.bottom < -vh * 0.5 || r.top > vh * 1.5) return;
-      var p = (r.top + r.height / 2 - vh / 2) / vh;
-      s.style.setProperty('--p', Math.max(-1, Math.min(1, p)).toFixed(3));
-    });
-  }
-
-  /* =========================================================
-     부드러운 자석: 스크롤을 멈춘 곳 바로 앞(가던 방향)에 페이지
-     경계가 있을 때만 살며시 맞춰 줌. 뒤로 끌어당기지 않고,
-     멀면 그대로 두고, 손대는 순간 바로 멈춤.
-     ========================================================= */
-  var pages = $$('.hero, .sec, .epilogue'), rootEl = document.documentElement;
-  var gliding = false, glideRaf = 0, settleTimer = null;
-  function cancelGlide() {
-    if (!gliding) return;
-    cancelAnimationFrame(glideRaf); gliding = false; rootEl.style.scrollBehavior = '';
-  }
-  function glideTo(target) {
-    var from = window.scrollY, dist = target - from, t0 = performance.now();
-    var dur = Math.min(700, 360 + Math.abs(dist) * 1.4);
-    gliding = true; rootEl.style.scrollBehavior = 'auto';
-    glideRaf = requestAnimationFrame(function step(now) {
-      if (!gliding) return;
-      var t = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - t, 3);
-      window.scrollTo(0, from + dist * e);
-      if (t < 1) glideRaf = requestAnimationFrame(step); else { gliding = false; rootEl.style.scrollBehavior = ''; }
-    });
-  }
+  var rootEl = document.documentElement;
+  var touchUI = window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+  var gliding = false, settleTimer = null, lastInput = 0, touching = false;
+  function cancelGlide() { gliding = false; }
   function settle() {
-    if (reduceMotion || gliding || document.body.classList.contains('is-intro') || document.body.classList.contains('is-dark') || $('dialog[open]')) return;
-    var y = window.scrollY, vh = window.innerHeight, reach = Math.min(vh * 0.16, 150), best = null, aligned = false;
+    if (touching || reduceMotion || gliding || document.body.classList.contains('is-intro') || document.body.classList.contains('is-dark') || $('dialog[open]')) return;
+    if (Date.now() - lastInput < 260) { settleTimer = setTimeout(settle, 120); return; }   /* 아직 휠을 굴리는 중 */
+    var y = window.scrollY, vh = window.innerHeight, reach = touchUI ? Math.min(vh * 0.12, 100) : Math.min(vh * 0.16, 150), best = null, aligned = false;
     pages.forEach(function (s) {
       var top = s.offsetTop, tall = s.offsetHeight > vh + 24;
       [top, tall ? top + s.offsetHeight - vh : null].forEach(function (c) {
@@ -205,13 +191,18 @@
         if (best === null || d < Math.abs(best - y)) best = c;
       });
     });
-    /* 이미 페이지 경계에 딱 맞아 있으면 그대로 */
-    if (best !== null && !aligned) glideTo(best);
+    if (best === null || aligned) return;
+    gliding = true;
+    window.scrollTo({ top: best, behavior: 'smooth' });
   }
-  if ('onscrollend' in window) window.addEventListener('scrollend', function () { clearTimeout(settleTimer); settleTimer = setTimeout(settle, 140); });
-  else window.addEventListener('scroll', function () { clearTimeout(settleTimer); settleTimer = setTimeout(settle, 220); }, { passive: true });
-  ['wheel', 'touchstart', 'keydown', 'mousedown'].forEach(function (t) {
-    window.addEventListener(t, function () { clearTimeout(settleTimer); cancelGlide(); }, { passive: true });
+  function queueSettle(ms) { clearTimeout(settleTimer); settleTimer = setTimeout(settle, ms); }
+  if ('onscrollend' in window) window.addEventListener('scrollend', function () { if (gliding) { gliding = false; return; } queueSettle(80); });
+  else window.addEventListener('scroll', function () { queueSettle(gliding ? 400 : 200); if (gliding) setTimeout(function () { gliding = false; }, 380); }, { passive: true });
+  ['wheel', 'keydown', 'mousedown', 'touchstart'].forEach(function (t) {
+    window.addEventListener(t, function () { lastInput = Date.now(); clearTimeout(settleTimer); gliding = false; if (t === 'touchstart') touching = true; }, { passive: true });
+  });
+  ['touchend', 'touchcancel'].forEach(function (t) {
+    window.addEventListener(t, function () { touching = false; lastInput = Date.now(); }, { passive: true });
   });
 
   /* =========================================================
