@@ -239,7 +239,7 @@
       { name: 'The Sea and Outer Space',
         text: 'Is it the sea beyond the door, or a universe full of stars? Each question explores a world it has never seen beyond its own door.' },
       { name: 'Dunno and the Great Cloth',
-        text: 'Dressed in gray and slowly dragging a huge cloth — that\'s Dunno. The giant shadow turned out to be Dunno\'s cloth, and later this cloth becomes the roof of a place to rest.' },
+        text: 'Dressed in gray and slowly dragging a huge cloth — that\'s Dunno. What could the giant shadow over Question Mark World have to do with Dunno\'s cloth? And how will that cloth be used?' },
       { name: 'The Curiosity Seed',
         text: 'A curiosity seed someone planted, a sprout grown on top of a period. Where an answer is found, a new question grows again.' }
     ],
