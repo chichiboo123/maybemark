@@ -61,18 +61,41 @@
   /* =========================================================
      0. 인트로
      ========================================================= */
-  var intro = $('#intro');
+  var intro = $('#intro'), introBusy = false;
+  /* 문이 열릴 때 '스으' 하고 공기가 지나가는 소리 (소리를 켰을 때만) */
+  function whoosh() {
+    if (!soundOn) return;
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      var now = actx.currentTime, len = actx.sampleRate * 1.6, buf = actx.createBuffer(1, len, actx.sampleRate), d = buf.getChannelData(0);
+      for (var i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      var src = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain();
+      src.buffer = buf; f.type = 'bandpass'; f.Q.value = 0.9;
+      f.frequency.setValueAtTime(300, now); f.frequency.exponentialRampToValueAtTime(2400, now + 1.3);
+      g.gain.setValueAtTime(0.0001, now); g.gain.exponentialRampToValueAtTime(0.16, now + 0.5); g.gain.exponentialRampToValueAtTime(0.0001, now + 1.5);
+      src.connect(f); f.connect(g); g.connect(actx.destination); src.start(now); src.stop(now + 1.6);
+    } catch (e) {}
+  }
   function closeIntro(animated) {
+    if (introBusy) return; introBusy = true;
     store.set('mm_intro', '1', true);
-    if (!animated || reduceMotion) { finish(); return; }
-    intro.classList.add('is-opening');
+    if (!animated || reduceMotion) { finish(false); return; }
     ding();
-    $('#introDing').textContent = T('ding');
-    setTimeout(finish, 1700);
-    function finish() {
-      intro.classList.add('is-gone');
+    /* 고급 연출(js/intro.js + anime.js). 없으면 간단한 대체 동작 */
+    var played = window.MM_INTRO && window.MM_INTRO.open({
+      onOpen: whoosh,
+      arrive: function () {
+        document.body.classList.add('is-arrive');
+        document.body.classList.remove('is-intro');
+        setTimeout(function () { document.body.classList.remove('is-arrive'); }, 1600);
+      },
+      done: function () { finish(true); }
+    });
+    if (!played) { intro.classList.add('is-opening'); setTimeout(function () { finish(false); }, 1800); }
+    function finish(faded) {
       document.body.classList.remove('is-intro');
-      setTimeout(function () { intro.hidden = true; }, 900);
+      if (faded) intro.hidden = true;
+      else { intro.classList.add('is-gone'); setTimeout(function () { intro.hidden = true; }, 900); }
       onScroll();
     }
   }

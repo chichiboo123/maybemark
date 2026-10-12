@@ -148,30 +148,69 @@ button { font-family: inherit; color: inherit; }
   transition: opacity .9s ease, visibility .9s;
 }
 .intro .stars { position: absolute; inset: 0; background: none; }
-.intro > *:not(.stars) { position: relative; z-index: 1; }
+.intro > *:not(.stars):not(.intro-dust):not(.intro-flash) { position: relative; z-index: 1; }
 .intro.is-gone { opacity: 0; visibility: hidden; }
 .intro[hidden] { display: none; }
 .intro-kicker { font-size: 15px; opacity: .85; }
 .intro-quote { font-size: clamp(18px, 4.6vw, 24px); font-weight: 800; max-width: 22em; }
-.intro-door {
-  position: relative; width: 150px; height: 236px; border: 0; background: none; cursor: pointer; perspective: 700px;
-}
-.door-light {
-  position: absolute; inset: 0; border-radius: 75px 75px 10px 10px;
-  background: radial-gradient(ellipse at 50% 60%, #FFFBE6 0%, #FFE58A 40%, #FFC233 100%);
-  box-shadow: 0 0 60px 10px rgba(255, 216, 77, .5);
-}
-.door-leaf {
-  position: absolute; inset: 0; border-radius: 75px 75px 10px 10px; transform-origin: left center;
-  background: linear-gradient(160deg, #FFD84D 0%, #F5A623 100%); box-shadow: inset -10px 0 0 rgba(0, 0, 0, .08);
-  display: flex; align-items: center; justify-content: center; transition: transform 1.1s cubic-bezier(.6, 0, .25, 1);
-}
-.door-q { font-size: 96px; font-weight: 900; color: var(--night); line-height: 1; }
-.door-knob { position: absolute; right: 18px; top: 56%; width: 13px; height: 13px; border-radius: 50%; background: #FFF6D0; box-shadow: inset 0 0 0 3px rgba(0, 0, 0, .12); }
-.intro-door:hover .door-leaf { transform: rotateY(-14deg); }
-.intro.is-opening .door-leaf { transform: rotateY(-108deg); }
-.intro.is-opening .door-light { animation: flood 1.4s .5s ease-in forwards; }
-@keyframes flood { to { transform: scale(14); opacity: 0; } }
+/* ---------- 인트로 문: 금빛 틀 + 판넬 문짝(앞·뒤) + 놋쇠 손잡이 + 틈새로 새는 빛 ---------- */
+.intro-stage { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 18px; will-change: transform; }
+.intro-dust { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 3; pointer-events: none; } /* 문 앞에서 반짝이도록 문보다 위 */
+.intro-door { position: relative; width: 172px; height: 262px; border: 0; padding: 0; background: none; cursor: pointer; perspective: 1100px; -webkit-tap-highlight-color: transparent; }
+.idoor-glow { position: absolute; left: 50%; top: 52%; width: 300%; height: 190%; translate: -50% -50%; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(255, 214, 110, .38), rgba(255, 190, 70, .12) 55%, transparent 100%);
+  animation: doorBreath 4.5s ease-in-out infinite alternate; }
+@keyframes doorBreath { from { opacity: .6; scale: .95; } to { opacity: 1; scale: 1.04; } }
+.idoor-frame { position: absolute; inset: 0; border-radius: 86px 86px 12px 12px; padding: 9px; transform-style: preserve-3d;
+  background: linear-gradient(160deg, #FFE9A6 0%, #F2C04A 35%, #C98A12 70%, #8F5A06 100%);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .35) inset, 0 -2px 6px rgba(255, 255, 255, .45) inset, 0 24px 48px rgba(0, 0, 0, .45), 0 0 40px rgba(255, 205, 90, .25); }
+.idoor-inside { position: absolute; inset: 9px; border-radius: 77px 77px 5px 5px; overflow: hidden;
+  background: radial-gradient(ellipse at 50% 70%, #FFFEF5 0%, #FFF0B8 30%, #FFCF5C 70%, #E89A1A 100%); }
+.idoor-rays { position: absolute; left: 50%; top: 62%; width: 420%; aspect-ratio: 1; translate: -50% -50%; opacity: .25;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 255, 255, .55) 0 5deg, rgba(255, 255, 255, 0) 5deg 15deg);
+  -webkit-mask: radial-gradient(circle, #000 0 18%, transparent 60%); mask: radial-gradient(circle, #000 0 18%, transparent 60%);
+  animation: raysSpin 26s linear infinite; }
+@keyframes raysSpin { to { rotate: 360deg; } }
+.idoor-core { position: absolute; left: 50%; top: 62%; width: 70%; aspect-ratio: 1; translate: -50% -50%; border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, rgba(255, 255, 255, .7) 30%, transparent 70%); opacity: .7; }
+/* 문짝: 오른쪽에 아주 가는 틈을 남겨 빛이 새어 나오게 */
+.idoor-leaf { position: absolute; inset: 9px 11px 9px 9px; border-radius: 77px 77px 5px 5px; transform-origin: 0 50%; transform-style: preserve-3d; will-change: transform; }
+.idoor-front, .idoor-back { position: absolute; inset: 0; border-radius: inherit; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.idoor-front { display: flex; align-items: center; justify-content: center; overflow: hidden;
+  background: linear-gradient(165deg, #FFE27A 0%, #FFC93C 38%, #F2A91F 72%, #DA8A10 100%);
+  box-shadow: 0 0 0 1px rgba(120, 70, 0, .35) inset, 0 2px 0 rgba(255, 255, 255, .55) inset; }
+/* 문짝 위 은은한 광택 */
+.idoor-front::after { content: ''; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, .28) 45%, transparent 60%); pointer-events: none; }
+.idoor-panel { position: absolute; left: 16%; right: 16%; border-radius: 6px; border: 1.5px solid rgba(140, 80, 0, .28); box-shadow: 0 1px 0 rgba(255, 255, 255, .45) inset, 0 1px 0 rgba(255, 255, 255, .35); }
+.idoor-panel.p1 { top: 14%; height: 34%; border-radius: 52px 52px 6px 6px; }
+.idoor-panel.p2 { top: 56%; height: 32%; }
+.idoor-back { transform: rotateY(180deg); background: linear-gradient(195deg, #E8A325 0%, #B97510 100%); box-shadow: 0 0 0 1px rgba(90, 50, 0, .4) inset; }
+.idoor-q { position: relative; font-size: 92px; font-weight: 900; line-height: 1; color: var(--night); text-shadow: 0 2px 0 rgba(255, 255, 255, .4), 0 -1px 0 rgba(0, 0, 0, .15); }
+.idoor-knob { position: absolute; right: 16px; top: 57%; width: 15px; height: 15px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #FFFBE0 0%, #F6D36A 40%, #A86A08 100%); box-shadow: 0 2px 4px rgba(0, 0, 0, .35); }
+/* 틈새 빛: 문 오른쪽 가장자리에서 새어 나오는 가는 빛 */
+.idoor-frame::after { content: ''; position: absolute; top: 18%; bottom: 3%; right: 9px; width: 3px; border-radius: 2px; pointer-events: none;
+  background: linear-gradient(180deg, transparent, #FFF6CF 20%, #FFFFFF 55%, #FFF6CF 85%, transparent); box-shadow: 0 0 12px 3px rgba(255, 228, 140, .8);
+  animation: crackGlow 2.8s ease-in-out infinite alternate; }
+@keyframes crackGlow { from { opacity: .55; } to { opacity: 1; } }
+.intro-door:hover .idoor-leaf, .intro-door:focus-visible .idoor-leaf { transform: rotateY(-9deg); transition: transform .6s cubic-bezier(.2, .8, .2, 1); }
+.intro-door .idoor-leaf { transition: transform .6s cubic-bezier(.2, .8, .2, 1); }
+.intro.is-playing .idoor-leaf, .intro.is-playing .idoor-frame { transition: none !important; }
+.intro.is-playing .intro-door { animation-play-state: paused; cursor: default; }
+/* 기다리는 동안 문이 아주 살짝 떠 있음 */
+.intro-door { animation: doorFloat 5s ease-in-out infinite alternate; }
+@keyframes doorFloat { from { translate: 0 0; } to { translate: 0 -6px; } }
+/* 문 안으로 들어설 때 화면을 채우는 빛 (위치는 JS가 문 가운데로 맞춤) */
+.intro::after { content: ''; position: absolute; inset: 0; z-index: 6; pointer-events: none; opacity: .09; mix-blend-mode: overlay; /* 고운 입자: 그라데이션 줄무늬를 지우고 필름 같은 질감 */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+.intro-flash { position: absolute; inset: 0; z-index: 5; opacity: 0; pointer-events: none;
+  background: radial-gradient(circle at var(--fx, 50%) var(--fy, 50%), #FFFFFF 0%, #FFF6D6 22%, #FFE39A 50%, #FFD15E 100%); }
+/* 애니메이션 라이브러리가 없을 때 쓰는 간단한 대체 동작 */
+.intro.is-opening .idoor-leaf { transform: rotateY(-110deg); transition: transform 1.2s cubic-bezier(.6, 0, .2, 1); }
+.intro.is-opening .intro-flash { opacity: 1; transition: opacity .8s .9s ease-in; }
+/* 첫 화면 도착: 빛이 걷히며 살짝 다가오던 화면이 제자리로 */
+body.is-arrive .hero-inner, body.is-arrive .hero-bg { animation: heroArrive 1.4s cubic-bezier(.2, .7, .2, 1) both; }
+@keyframes heroArrive { from { opacity: 0; scale: 1.06; filter: blur(8px) brightness(1.5); } to { opacity: 1; scale: 1; filter: none; } }
 .intro-skip { position: absolute !important; right: 18px; bottom: 18px; background: none; border: 0; color: #fff; opacity: .8; display: inline-flex; align-items: center; gap: 4px; font-size: 14px; cursor: pointer; padding: 10px; }
 .intro-sound { position: absolute !important; right: 14px; top: 14px; }
 .ding-toast { min-height: 1.6em; font-size: 15px; color: var(--logo); font-weight: 700; }

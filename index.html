@@ -26,26 +26,38 @@
     })();
   </script>
   <!-- ?v= : 고칠 때마다 숫자를 바꾸면 방문자 브라우저가 옛 파일을 쓰지 않음 -->
-  <link rel="stylesheet" href="css/style.css?v=20261013b" />
+  <link rel="stylesheet" href="css/style.css?v=20261013g" />
 </head>
 <body class="is-intro">
 
 <!-- ========== 0. 인트로: 문 열기 ========== -->
 <div class="intro" id="intro" role="dialog" aria-label="물음표 월드로 들어가기" data-i18n-attr="aria-label:intro.aria">
   <div class="stars" aria-hidden="true"></div>
+  <!-- 떠다니는 금빛 먼지 · 문이 열릴 때 쏟아지는 빛가루 -->
+  <canvas class="intro-dust" id="introDust" aria-hidden="true"></canvas>
   <button class="lang-toggle intro-lang" type="button" data-lang-toggle><span class="material-icons-outlined" aria-hidden="true">language</span><span class="lang-label">EN</span></button>
   <button class="sound-toggle intro-sound" type="button" data-sound-toggle aria-pressed="false">
     <span class="material-icons-outlined" aria-hidden="true">volume_off</span><span class="sound-label">소리 켜기</span>
   </button>
-  <p class="intro-kicker" data-i18n="intro.kicker">동두천송내초 뮤톡 창작뮤지컬</p>
-  <button class="intro-door" id="introDoor" type="button" aria-label="문을 열고 물음표 월드로 들어가기" data-i18n-attr="aria-label:intro.doorAria">
-    <span class="door-light" aria-hidden="true"></span>
-    <span class="door-leaf" aria-hidden="true"><span class="door-q">?</span><span class="door-knob"></span></span>
-  </button>
-  <p class="intro-quote" data-i18n="intro.quote">"궁금한 건 많은데, 답은 없는 것 같아요."</p>
-  <button class="btn-pill btn-yellow" id="introOpen" type="button" data-i18n="intro.open">문을 열어 볼까요?</button>
+  <div class="intro-stage" id="introStage">
+    <p class="intro-kicker" data-i18n="intro.kicker">동두천송내초 뮤톡 창작뮤지컬</p>
+    <button class="intro-door" id="introDoor" type="button" aria-label="문을 열고 물음표 월드로 들어가기" data-i18n-attr="aria-label:intro.doorAria">
+      <span class="idoor-glow" aria-hidden="true"></span>
+      <span class="idoor-frame" aria-hidden="true">
+        <span class="idoor-inside"><span class="idoor-rays"></span><span class="idoor-core"></span></span>
+        <span class="idoor-leaf">
+          <span class="idoor-front"><span class="idoor-panel p1"></span><span class="idoor-panel p2"></span><span class="idoor-q">?</span><span class="idoor-knob"></span></span>
+          <span class="idoor-back"></span>
+        </span>
+      </span>
+    </button>
+    <p class="intro-quote" data-i18n="intro.quote">"궁금한 건 많은데, 답은 없는 것 같아요."</p>
+    <button class="btn-pill btn-yellow" id="introOpen" type="button" data-i18n="intro.open">문을 열어 볼까요?</button>
+    <p class="ding-toast" id="introDing" aria-live="polite"></p>
+  </div>
   <button class="intro-skip" id="introSkip" type="button"><span data-i18n="intro.skip">건너뛰기</span> <span class="material-icons-outlined" aria-hidden="true">arrow_forward</span></button>
-  <p class="ding-toast" id="introDing" aria-live="polite"></p>
+  <!-- 문 안으로 들어설 때 화면을 채우는 빛 -->
+  <div class="intro-flash" id="introFlash" aria-hidden="true"></div>
 </div>
 
 <!-- ========== 상단 메뉴 ========== -->
@@ -374,9 +386,11 @@
 </footer>
 
 <audio id="audio" preload="none"></audio>
-<script src="js/config.js?v=20261013b"></script>
-<script src="js/data.js?v=20261013b"></script>
-<script src="js/i18n.js?v=20261013b"></script>
-<script src="js/main.js?v=20261013b"></script>
+<script src="js/config.js?v=20261013g"></script>
+<script src="js/data.js?v=20261013g"></script>
+<script src="js/i18n.js?v=20261013g"></script>
+<script src="js/vendor/anime.min.js?v=3.2.2"></script>
+<script src="js/intro.js?v=20261013g"></script>
+<script src="js/main.js?v=20261013g"></script>
 </body>
 </html>

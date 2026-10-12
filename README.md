@@ -16,6 +16,8 @@ js/data.js            ★ 글자·인물·넘버·무대 기록 (내용 수정�
 js/config.js          ★ Apps Script 주소(API_URL)
 js/i18n.js            ★ 영어 번역 (한국어 원문은 index.html·js/data.js)
 js/main.js            동작
+js/intro.js           첫 화면 '문 열기' 연출
+js/vendor/            오픈소스 anime.js v3.2.2 (MIT 라이선스, 원문 anime.LICENSE.md 동봉)
 assets/               포스터 원화, 로고, 인물 일러스트, MR 30초 클립, OG 이미지
 data/questions.json   공연 후 고정 보관용 공개 질문 (처음엔 빈 배열)
 apps-script/Code.gs   구글 시트에 붙여 넣을 코드
