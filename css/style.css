@@ -238,7 +238,44 @@ button { font-family: inherit; color: inherit; }
 .hero-inner { position: relative; z-index: 2; width: 100%; max-width: var(--wrap); margin: 0 auto; padding: calc(var(--header-h) + 24px) 20px 40px; text-align: center; }
 /* 소제목·로고·(영어)부제를 로고 폭 기준으로 가운데 정렬 */
 .hero-title { display: flex; flex-direction: column; align-items: center; }
-.hero-logo img { width: min(560px, 92vw); margin: 0 auto; filter: drop-shadow(0 8px 18px rgba(0, 0, 0, .35)); }
+.hero-logo { position: relative; }
+.hero-logo img { position: relative; z-index: 1; width: min(560px, 92vw); margin: 0 auto; filter: drop-shadow(0 8px 18px rgba(0, 0, 0, .35)); }
+
+/* ---------- 첫 화면 반짝임 ---------- */
+/* 1) 로고 뒤 은은한 금빛 후광이 천천히 숨 쉬듯 */
+.hero-logo::before {
+  content: ''; position: absolute; z-index: 0; left: 50%; top: 52%; width: 92%; height: 86%; translate: -50% -50%; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(255, 206, 70, .5), rgba(255, 180, 40, .18) 55%, transparent 100%);
+  filter: blur(14px); animation: haloBreath 5.5s ease-in-out infinite alternate;
+}
+@keyframes haloBreath { from { opacity: .55; scale: .94; } to { opacity: 1; scale: 1.04; } }
+/* 2) 로고 글자 모양을 따라 비스듬히 지나가는 빛 (로고 이미지를 마스크로 사용) */
+.logo-shine {
+  position: absolute; z-index: 2; inset: 0; pointer-events: none;
+  -webkit-mask: url(../assets/logo.webp) center / 100% 100% no-repeat; mask: url(../assets/logo.webp) center / 100% 100% no-repeat;
+  /* 유리처럼: 선명한 빛 한 줄 + 뒤따르는 가는 빛 한 줄 */
+  background: linear-gradient(105deg, transparent 0 44%, rgba(255, 255, 255, .0) 45.5%, rgba(255, 255, 255, .7) 48.6%, rgba(255, 255, 255, .95) 49.4%, rgba(255, 255, 255, .7) 50.2%, rgba(255, 255, 255, 0) 53%,
+    transparent 54.5%, rgba(255, 255, 255, .55) 55.6%, transparent 56.8% 100%) no-repeat;
+  background-size: 320% 100%; background-position: 82% 0; animation: logoShine 6.5s ease-in-out 1.4s infinite;
+}
+/* 빛줄기가 로고를 가로지르는 데 약 1.6초, 나머지 시간은 쉼 */
+@keyframes logoShine { 0% { background-position: 82% 0; } 25%, 100% { background-position: 16% 0; } }
+/* 3) 별빛: 가는 십자 빛줄기 + 작은 광점이 하나씩 피었다 사라짐 */
+.logo-glints { position: absolute; z-index: 3; inset: 0; pointer-events: none; }
+.glint { position: absolute; left: var(--x); top: var(--y); width: var(--s); height: var(--s); translate: -50% -50%; opacity: 0; scale: 0;
+  animation: glint 5.2s ease-in-out var(--d) infinite; }
+.glint::before, .glint::after { content: ''; position: absolute; left: 50%; top: 50%; border-radius: 2px; translate: -50% -50%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .95), transparent); }
+.glint::before { width: 100%; height: 3px; }
+.glint::after { width: 3px; height: 100%; background: linear-gradient(180deg, transparent, rgba(255, 255, 255, .95), transparent); }
+.glint { background: radial-gradient(circle, #fff 0 9%, rgba(255, 236, 160, .85) 16%, transparent 38%); filter: drop-shadow(0 0 5px #fff) drop-shadow(0 0 12px rgba(255, 214, 90, .95)); }
+@keyframes glint {
+  0%, 58%, 100% { opacity: 0; scale: 0; rotate: 0deg; }
+  68% { opacity: 1; scale: 1.15; rotate: 35deg; }
+  78% { opacity: .95; scale: .8; rotate: 55deg; }
+  88% { opacity: 0; scale: 0; rotate: 80deg; }
+}
+@media (prefers-reduced-motion: reduce) { .logo-shine, .logo-glints { display: none; } .hero-logo::before { animation: none; opacity: .8; } }
 .hero-sub { margin-bottom: 6px; max-width: min(560px, 92vw); font-size: 15px; font-weight: 700; letter-spacing: .02em; text-align: center; text-shadow: 0 1px 6px rgba(0, 0, 0, .5); }
 .hero-tagline { max-width: min(500px, 88vw); margin-top: 2px; font-size: 14px; line-height: 1.55; text-align: center; color: rgba(255, 255, 255, .88); text-shadow: 0 1px 6px rgba(0, 0, 0, .5); }
 .hero-tagline span { display: block; }
