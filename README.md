@@ -14,6 +14,7 @@ index.html            한 페이지 사이트
 css/style.css         디자인
 js/data.js            ★ 글자·인물·넘버·무대 기록 (내용 수정은 여기서)
 js/config.js          ★ Apps Script 주소(API_URL)
+js/i18n.js            ★ 영어 번역 (한국어 원문은 index.html·js/data.js)
 js/main.js            동작
 assets/               포스터 원화, 로고, 인물 일러스트, MR 30초 클립, OG 이미지
 data/questions.json   공연 후 고정 보관용 공개 질문 (처음엔 빈 배열)
@@ -61,7 +62,15 @@ CNAME                 GitHub Pages 사용자 도메인
 시트 메뉴 **MAYBEMARK → 공개 질문 questions.json 만들기** → '내보내기' 탭 A1 내용을 복사해 `data/questions.json`에 붙여 넣고 올립니다.
 Apps Script가 멈추거나 `API_URL`을 비워도 사이트는 이 파일을 보여 줍니다.
 
-## 3. 내용 바꾸기
+## 3. 한국어 / English
+
+- 오른쪽 위 지구본 버튼으로 바꿉니다. 고른 언어는 기억되고, 보던 구역에서 이어 봅니다.
+- 영어 주소를 나눠 주려면 `https://maybemark.chichiboo.link/?lang=en` (한국어는 `?lang=ko`).
+- 처음 방문자는 브라우저 언어가 한국어면 한국어, 아니면 영어로 보입니다.
+- 한국어 글을 고치면 `js/i18n.js`의 같은 키(또는 같은 순서의 항목) 영어도 함께 고쳐 주세요. 영어가 없는 곳은 한국어가 그대로 보입니다.
+- 사람 이름은 두 언어 모두 한글로 둡니다.
+
+## 4. 내용 바꾸기
 
 | 바꿀 것 | 위치 |
 | --- | --- |
@@ -71,6 +80,7 @@ Apps Script가 멈추거나 `API_URL`을 비워도 사이트는 이 파일을 �
 | 아기 질문의 문 여는 시각 | `js/data.js`의 `babyDoorOpensAt` |
 | 질문 글자 수·재전송 대기·벽에 거는 문 수·새 질문 확인 간격 | `js/config.js` |
 | 스타일·스크립트를 고친 뒤 방문자 브라우저에 바로 반영 | `index.html`의 `?v=` 숫자를 바꾸기 |
+| 영어 문장 | `js/i18n.js` (화면 글자는 `EN`, 인물·넘버·안내도·무대 기록은 `DATA_EN`) |
 
 ---
 Created by. 교육뮤지컬 꿈꾸는 치수쌤 · https://litt.ly/chichiboo
