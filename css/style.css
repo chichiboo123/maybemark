@@ -668,7 +668,6 @@ html[lang="en"] .qd-l { --w: 210px; --h: 256px; --fs: 13px; }
   .hero-title { display: inline-flex; }
   .hero-logo img { width: 470px; }
   .hero-sub, .hero-tagline { max-width: 470px; }
-  .hero-btns { justify-content: flex-start; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
