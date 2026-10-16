@@ -182,6 +182,15 @@
     'list.empty': 'No questions are open yet. Be the first to ask!',
     'close': 'Close',
 
+    'footer.aria': 'Terms and policies',
+    'footer.terms': 'Terms of Use',
+    'footer.privacy': 'Privacy Policy',
+    'legal.back': 'Back to MAYBEMARK',
+    'terms.metaTitle': 'Terms of Use · MAYBEMARK',
+    'terms.metaDesc': 'Terms of Use for the MAYBEMARK · The Maybemark Explorers website',
+    'privacy.metaTitle': 'Privacy Policy · MAYBEMARK',
+    'privacy.metaDesc': 'Privacy Policy for the MAYBEMARK · The Maybemark Explorers website',
+
     'baby.title': 'The Baby Question\'s Door',
     'baby.text': 'It hasn\'t opened yet. Maybe it\'ll open tomorrow… Dunno.',
     'baby.opened': 'The door opened after the showcase. Curtain-call memories will appear behind this door soon.',
@@ -288,8 +297,10 @@
     D.credits = DATA_EN.credits;
     D.thanks = DATA_EN.thanks;
 
-    document.title = EN['meta.title'];
-    var md = document.querySelector('meta[name="description"]'); if (md) md.setAttribute('content', EN['meta.desc']);
+    /* 이용약관·개인정보 처리방침 페이지는 body의 data-i18n-title / data-i18n-desc 키로 제목을 정함 */
+    var b = document.body;
+    document.title = EN[b.getAttribute('data-i18n-title') || 'meta.title'];
+    var md = document.querySelector('meta[name="description"]'); if (md) md.setAttribute('content', EN[b.getAttribute('data-i18n-desc') || 'meta.desc']);
     Array.prototype.forEach.call(document.querySelectorAll('[data-i18n]'), function (el) {
       var v = EN[el.getAttribute('data-i18n')];
       if (v == null) return;
